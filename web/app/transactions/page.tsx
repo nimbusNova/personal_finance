@@ -8,6 +8,12 @@ import { formatCurrencyPrivate } from '@/lib/formatters';
 import { getTransactionSummary, getExpensiveTransactions, getTransactions, updateTransactionCategory } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Receipt, AlertCircle, Loader2, TrendingUp, X, HelpCircle } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface CategorySummary {
   category: string;
