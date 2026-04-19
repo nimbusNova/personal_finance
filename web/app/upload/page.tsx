@@ -74,7 +74,6 @@ export default function UploadPage() {
     log.info(`Starting upload: ${file.name}`);
     try {
       const result = await uploadPDF(file);
-      setMessage('Upload successful! Extraction starting...');
       setPollingId(result.pdf_id);
       await fetchUploads();
     } catch (err: any) {
