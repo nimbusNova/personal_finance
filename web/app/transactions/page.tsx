@@ -7,7 +7,7 @@ import { usePrivacy } from '@/app/context/PrivacyContext';
 import { formatCurrencyPrivate } from '@/lib/formatters';
 import { getTransactionSummary, getExpensiveTransactions, getTransactions, updateTransactionCategory } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Receipt, AlertCircle, Loader2, TrendingUp, X } from 'lucide-react';
+import { Receipt, AlertCircle, Loader2, TrendingUp, X, HelpCircle } from 'lucide-react';
 
 interface CategorySummary {
   category: string;
@@ -218,32 +218,51 @@ export default function TransactionsPage() {
                 <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                   <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="w-5 h-5 text-gray-400" />
-                    <h2 className="text-lg font-semibold text-white">Expensive Items</h2>
+                    <h2 className="text-lg font-semibold text-white">All Transactions</h2>
+                    <div className="group relative">
+                      <HelpCircle className="w-4 h-4 text-gray-500 cursor-help" />
+                      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-48 p-2 bg-gray-900 border border-gray-700 rounded text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                        Transactions ≥ $200 are highlighted in yellow.
+                      </div>
+                    </div>
                   </div>
                   {expensive.length > 0 ? (
-                    <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                      {expensive.map((t) => (
-                        <div
-                          key={t.id}
-                          className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg border border-gray-600"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-white">{t.merchant}</p>
-                            <p className="text-xs text-gray-400">{t.category}</p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {expensive.map((t) => {
+                        const isExpensive = (t.amount || 0) >= 200;
+                        return (
+                          <div
+                            key={t.id}
+                            className={cn(
+                              'flex items-center justify-between p-3 rounded-lg border transition',
+                              isExpensive
+                                ? 'bg-yellow-900/20 border-yellow-700/50'
+                                : 'bg-gray-700/50 border-gray-600'
+                            )}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-white">{t.merchant}</p>
+                              <p className="text-xs text-gray-400">{t.category}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className={cn(
+                                'text-sm font-medium',
+                                isExpensive ? 'text-yellow-400' : 'text-white'
+                              )}>
+                                {formatCurrency(t.amount)}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {new Date(t.date).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-white">{formatCurrency(t.amount)}</p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(t.date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
                       <TrendingUp className="w-12 h-12 opacity-30" />
-                      <p>No expensive transactions found.</p>
+                      <p>No transactions found.</p>
                     </div>
                   )}
                 </div>

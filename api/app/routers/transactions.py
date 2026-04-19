@@ -127,12 +127,11 @@ async def get_expensive_transactions(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get transactions above threshold. If year+month provided, filter to that month."""
+    """Get transactions sorted by amount desc. When year+month provided, returns all transactions for that month. Otherwise returns transactions above threshold for last N days."""
     logger.debug(f"Get expensive transactions: user={current_user.email}, threshold={threshold}, year={year}, month={month}")
     
     query = db.query(Transaction).join(Account).filter(
         Account.user_id == current_user.id,
-        Transaction.amount >= threshold,
     )
     
     if year and month:
@@ -143,9 +142,9 @@ async def get_expensive_transactions(
         query = query.filter(Transaction.date >= start_date, Transaction.date <= end_date)
     else:
         start_date = datetime.now() - timedelta(days=days)
-        query = query.filter(Transaction.date >= start_date)
+        query = query.filter(Transaction.date >= start_date, Transaction.amount >= threshold)
     
-    transactions = query.order_by(Transaction.date.desc()).all()
+    transactions = query.order_by(Transaction.amount.desc()).all()
     logger.info(f"Expensive transactions for {current_user.email}: {len(transactions)} items")
     return {
         "transactions": [
