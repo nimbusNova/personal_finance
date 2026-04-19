@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Loader2, RefreshCw } from 'lucide-react';
+import { FileText, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 export interface UploadItem {
   id: number;
@@ -16,6 +16,8 @@ interface UploadsTableProps {
   uploads: UploadItem[];
   onSelectPdf?: (id: number) => void;
   onRetry?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  deletingId?: number | null;
   retryingId?: number | null;
   pollingId?: number | null;
   maxItems?: number;
@@ -27,6 +29,8 @@ export default function UploadsTable({
   uploads,
   onSelectPdf,
   onRetry,
+  onDelete,
+  deletingId,
   retryingId,
   pollingId,
   maxItems,
@@ -56,6 +60,7 @@ export default function UploadsTable({
             <th className="px-4 py-3">State</th>
             <th className="px-4 py-3 w-24 whitespace-nowrap">Upload Date</th>
             {onRetry && <th className="px-4 py-3 w-16"></th>}
+            {onDelete && <th className="px-4 py-3 w-12"></th>}
           </tr>
         </thead>
         <tbody>
@@ -104,6 +109,22 @@ export default function UploadsTable({
                       Retry
                     </button>
                   )}
+                </td>
+              )}
+              {onDelete && (
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => onDelete(u.id)}
+                    disabled={deletingId === u.id || u.extraction_status === 'processing'}
+                    className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition disabled:opacity-40"
+                    title="Delete upload"
+                  >
+                    {deletingId === u.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
                 </td>
               )}
             </tr>

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.database import get_db
-from app.database.models import PDF, Account
+from app.database.models import PDF, Account, PortfolioSnapshot, Holding, Transaction, AccountBalance, ExtractionJob, ManualCorrection
 from app.routers.auth import get_current_user
 from app.services.pdf_service import (
     generate_pdf_path,
@@ -291,6 +291,66 @@ async def update_extracted_data(
         "extracted_data": pdf.extracted_data,
         "message": "Extracted data updated"
     }
+
+
+@router.delete("/uploads/{pdf_id}")
+async def delete_upload(
+    pdf_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a PDF upload, its file on disk, and all derived data."""
+    logger.info(f"Delete upload requested: pdf_id={pdf_id}, user={current_user.email}")
+    pdf = db.query(PDF).outerjoin(Account).filter(
+        PDF.id == pdf_id,
+        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
+    ).first()
+
+    if not pdf:
+        raise HTTPException(status_code=404, detail="PDF not found")
+
+    # Delete derived data in order (respecting FK constraints)
+    # 1. Holdings via PortfolioSnapshot cascade, but delete snapshots explicitly first
+    snapshots = db.query(PortfolioSnapshot).filter(PortfolioSnapshot.pdf_id == pdf_id).all()
+    for snap in snapshots:
+        db.delete(snap)
+    if snapshots:
+        logger.info(f"Deleted {len(snapshots)} portfolio snapshots for PDF {pdf_id}")
+
+    # 2. Transactions
+    txn_count = db.query(Transaction).filter(Transaction.pdf_id == pdf_id).delete(synchronize_session=False)
+    if txn_count:
+        logger.info(f"Deleted {txn_count} transactions for PDF {pdf_id}")
+
+    # 3. AccountBalances
+    bal_count = db.query(AccountBalance).filter(AccountBalance.pdf_id == pdf_id).delete(synchronize_session=False)
+    if bal_count:
+        logger.info(f"Deleted {bal_count} account balances for PDF {pdf_id}")
+
+    # 4. ExtractionJobs
+    job_count = db.query(ExtractionJob).filter(ExtractionJob.pdf_id == pdf_id).delete(synchronize_session=False)
+    if job_count:
+        logger.info(f"Deleted {job_count} extraction jobs for PDF {pdf_id}")
+
+    # 5. ManualCorrections
+    mc_count = db.query(ManualCorrection).filter(ManualCorrection.pdf_id == pdf_id).delete(synchronize_session=False)
+    if mc_count:
+        logger.info(f"Deleted {mc_count} manual corrections for PDF {pdf_id}")
+
+    # 6. Delete file from disk
+    if pdf.file_path and os.path.exists(pdf.file_path):
+        try:
+            os.remove(pdf.file_path)
+            logger.info(f"Deleted file from disk: {pdf.file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to delete file from disk: {pdf.file_path}: {e}")
+
+    # 7. Delete PDF record
+    db.delete(pdf)
+    db.commit()
+    logger.info(f"Deleted PDF record {pdf_id}")
+
+    return {"message": "Upload deleted", "pdf_id": pdf_id}
 
 
 @router.get("/uploads/stats")

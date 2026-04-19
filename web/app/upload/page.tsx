@@ -5,7 +5,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
 import PdfViewerModal from '@/app/components/PdfViewerModal';
 import UploadsTable, { UploadItem } from '@/app/components/UploadsTable';
-import { uploadPDF, getUploads, getUploadById, retryExtraction } from '@/lib/api';
+import { uploadPDF, getUploads, getUploadById, retryExtraction, deleteUpload } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 import { UploadCloud, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
 
@@ -20,6 +20,7 @@ export default function UploadPage() {
   const [pollingId, setPollingId] = useState<number | null>(null);
   const [pollingStatus, setPollingStatus] = useState('');
   const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedPdfId, setSelectedPdfId] = useState<number | null>(null);
 
   const fetchUploads = async () => {
@@ -97,6 +98,24 @@ export default function UploadPage() {
       setMessage(err.message || 'Retry failed');
     } finally {
       setRetryingId(null);
+    }
+  };
+
+  const handleDelete = async (pdfId: number) => {
+    if (!confirm('Are you sure you want to delete this upload? All extracted data will be removed.')) {
+      return;
+    }
+    setDeletingId(pdfId);
+    log.info(`Deleting upload ${pdfId}`);
+    try {
+      await deleteUpload(pdfId);
+      setMessage('Upload deleted');
+      await fetchUploads();
+    } catch (err: any) {
+      log.error(`Delete failed: ${err.message}`);
+      setMessage(err.message || 'Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -198,7 +217,9 @@ export default function UploadPage() {
               uploads={uploads}
               onSelectPdf={(id) => setSelectedPdfId(id)}
               onRetry={handleRetry}
+              onDelete={handleDelete}
               retryingId={retryingId}
+              deletingId={deletingId}
               pollingId={pollingId}
               loading={loading}
               emptyMessage="No uploads yet."
