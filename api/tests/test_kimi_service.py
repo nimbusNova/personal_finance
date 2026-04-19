@@ -100,34 +100,44 @@ class TestKimiService:
         assert result["success"] is False
         assert "error" in result
     
+    @patch('app.services.kimi_service.KimiService._upload_file')
+    @patch('app.services.kimi_service.KimiService._extract_with_kimi')
     @patch('app.services.kimi_service.get_settings')
-    def test_extract_from_pdf_with_hint(self, mock_settings):
+    def test_extract_from_pdf_with_hint(self, mock_settings, mock_extract, mock_upload):
         """Test PDF extraction with document type hint"""
         mock_settings.return_value.kimi_api_key = "test_key"
+        mock_settings.return_value.kimi_base_url = "https://api.moonshot.cn/v1"
         
-        service = KimiService()
-        
-        # Mock internal methods
-        service._upload_file = Mock(return_value={"url": "https://file.url"})
-        service._extract_with_kimi = Mock(return_value={
+        mock_upload.return_value = {"url": "https://file.url"}
+        mock_extract.return_value = {
             "success": True,
             "data": {"doc_type": "brokerage"},
             "confidence": 0.95
-        })
+        }
+        
+        service = KimiService.__new__(KimiService)
+        service.api_key = "test_key"
+        service.base_url = "https://api.moonshot.cn/v1"
+        service.client = Mock()
         
         with patch('builtins.open', mock_open(read_data=b"pdf")):
             result = service.extract_from_pdf("/path/to/file.pdf", "brokerage")
         
         assert result["success"] is True
-        service._upload_file.assert_called_once()
-        service._extract_with_kimi.assert_called_once()
+        mock_upload.assert_called_once()
+        mock_extract.assert_called_once()
     
     @patch('app.services.kimi_service.get_settings')
     def test_detect_doc_type(self, mock_settings):
         """Test document type detection"""
         mock_settings.return_value.kimi_api_key = "test_key"
+        mock_settings.return_value.kimi_base_url = "https://api.moonshot.cn/v1"
         
-        service = KimiService()
+        service = KimiService.__new__(KimiService)
+        service.api_key = "test_key"
+        service.base_url = "https://api.moonshot.cn/v1"
+        service.client = Mock()
+        
         doc_type = service._detect_doc_type("/any/path.pdf")
         
         # Currently returns "unknown" (placeholder)

@@ -1,6 +1,7 @@
 """Unit tests for database models"""
 import pytest
 from datetime import datetime
+from decimal import Decimal
 from app.database.models import (
     User, Institution, Account, LifeStageProfile,
     PDF, PortfolioSnapshot, Holding, Transaction,
@@ -191,7 +192,7 @@ class TestTransactionModel:
         db_session.commit()
         
         assert transaction.id is not None
-        assert transaction.amount == 142.35
+        assert transaction.amount == Decimal('142.35')
         assert transaction.is_recurring is False
     
     def test_recurring_transaction(self, db_session):

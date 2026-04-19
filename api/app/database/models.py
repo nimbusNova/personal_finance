@@ -82,7 +82,7 @@ class PDF(Base):
     __tablename__ = "pdfs"
     
     id = Column(Integer, primary_key=True)
-    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)  # Can be null initially
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer)
     page_count = Column(Integer)
