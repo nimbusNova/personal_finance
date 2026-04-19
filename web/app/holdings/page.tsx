@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
 import { getHoldings } from '@/lib/api';
-import { PieChart, AlertCircle, Loader2 } from 'lucide-react';
+import { PieChart, AlertCircle, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Holding {
   id: number;
   symbol: string;
   name: string;
-  asset_class: string;
   sector: string;
   geography: string;
   quantity: number;
@@ -21,10 +20,15 @@ interface Holding {
   weight_pct: number;
 }
 
+type SortKey = 'quantity' | 'price' | 'market_value' | 'weight_pct';
+type SortDir = 'asc' | 'desc';
+
 export default function HoldingsPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('market_value');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   useEffect(() => {
     async function fetchHoldings() {
@@ -40,11 +44,49 @@ export default function HoldingsPage() {
     fetchHoldings();
   }, []);
 
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedHoldings = useMemo(() => {
+    return [...holdings].sort((a, b) => {
+      const aVal = a[sortKey] ?? 0;
+      const bVal = b[sortKey] ?? 0;
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [holdings, sortKey, sortDir]);
+
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
 
   const formatNumber = (val: number) =>
     new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(val || 0);
+
+  const SortHeader = ({ label, sortKey: key }: { label: string; sortKey: SortKey }) => {
+    const active = sortKey === key;
+    return (
+      <th
+        className="px-4 py-3 cursor-pointer select-none hover:text-white transition"
+        onClick={() => toggleSort(key)}
+      >
+        <div className="flex items-center gap-1">
+          {label}
+          {active && (
+            sortDir === 'asc' ? (
+              <ArrowUp className="w-3 h-3 text-primary-400" />
+            ) : (
+              <ArrowDown className="w-3 h-3 text-primary-400" />
+            )
+          )}
+        </div>
+      </th>
+    );
+  };
 
   return (
     <ProtectedRoute>
@@ -74,19 +116,17 @@ export default function HoldingsPage() {
                   <tr>
                     <th className="px-4 py-3">Symbol</th>
                     <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Asset Class</th>
-                    <th className="px-4 py-3">Quantity</th>
-                    <th className="px-4 py-3">Price</th>
-                    <th className="px-4 py-3">Market Value</th>
-                    <th className="px-4 py-3">Weight</th>
+                    <SortHeader label="Quantity" sortKey="quantity" />
+                    <SortHeader label="Price" sortKey="price" />
+                    <SortHeader label="Market Value" sortKey="market_value" />
+                    <SortHeader label="Weight" sortKey="weight_pct" />
                   </tr>
                 </thead>
                 <tbody>
-                  {holdings.map((h) => (
+                  {sortedHoldings.map((h) => (
                     <tr key={h.id} className="bg-gray-800 border-t border-gray-700 hover:bg-gray-700/50">
                       <td className="px-4 py-3 font-medium text-white">{h.symbol || '-'}</td>
                       <td className="px-4 py-3 text-gray-300">{h.name || '-'}</td>
-                      <td className="px-4 py-3 text-gray-400">{h.asset_class || '-'}</td>
                       <td className="px-4 py-3 text-gray-300">{formatNumber(h.quantity)}</td>
                       <td className="px-4 py-3 text-gray-300">{formatCurrency(h.price)}</td>
                       <td className="px-4 py-3 text-white font-medium">{formatCurrency(h.market_value)}</td>

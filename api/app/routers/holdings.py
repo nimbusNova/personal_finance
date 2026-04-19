@@ -124,7 +124,7 @@ async def get_portfolio_summary(
     snapshot_ids = [s.id for s in snapshots]
     holdings = db.query(Holding).filter(Holding.snapshot_id.in_(snapshot_ids)).all()
     
-    # Calculate allocation by asset class
+    # Calculate allocation by asset class (holdings + cash)
     allocation = {}
     for h in holdings:
         asset_class = h.asset_class or "unknown"
@@ -132,10 +132,14 @@ async def get_portfolio_summary(
             allocation[asset_class] = 0
         allocation[asset_class] += float(h.market_value or 0)
     
-    # Convert to percentages
-    if invested_value > 0:
+    # Add cash as a separate allocation category
+    if cash_balance > 0:
+        allocation["cash"] = cash_balance
+    
+    # Convert to percentages using total_value (invested + cash) as denominator
+    if brokerage_total > 0:
         allocation_pct = {
-            k: round(v / invested_value * 100, 2) 
+            k: round(v / brokerage_total * 100, 2) 
             for k, v in allocation.items()
         }
     else:

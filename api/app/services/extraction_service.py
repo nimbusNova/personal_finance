@@ -459,11 +459,14 @@ def _persist_bank(db, pdf: PDF, account: Account, data: Dict[str, Any], upload_l
     upload_logger.info(f"Created {len(transactions)} bank transactions")
 
     # Record account balance from ending balance
-    balances = data.get("balances", {})
-    if not isinstance(balances, dict):
-        balances = {}
-    ending_balance = Decimal(str(balances.get("ending_balance", 0) or 0))
-    if ending_balance > 0 or (balances.get("ending_balance") is not None):
+    # The model may return ending_balance at the root level or nested under balances
+    ending_balance = (
+        data.get("ending_balance")
+        or data.get("balances", {}).get("ending_balance")
+        or 0
+    )
+    ending_balance = Decimal(str(ending_balance))
+    if ending_balance > 0 or (data.get("ending_balance") is not None):
         ab = AccountBalance(
             account_id=account.id,
             pdf_id=pdf.id,
@@ -472,6 +475,7 @@ def _persist_bank(db, pdf: PDF, account: Account, data: Dict[str, Any], upload_l
         )
         db.add(ab)
         db.commit()
+        upload_logger.info(f"Recorded account balance: {ending_balance}")
 
 
 def _parse_date(date_str) -> Optional[datetime]:

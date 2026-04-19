@@ -210,8 +210,10 @@ class KimiService:
     ) -> tuple[str, str]:
         """Get text from PDF. Returns (text, source_name).
         Tries file-upload API first, falls back to PyPDF2.
+        Deletes the uploaded file from Kimi immediately after use.
         """
         upload_logger = get_upload_logger(logger, upload_id)
+        file_id = None
 
         # Strategy 1: Upload file and get extracted text via API
         try:
@@ -227,6 +229,9 @@ class KimiService:
                 upload_logger.warning(f"File content too short: {len(text)} chars")
         except Exception as exc:
             upload_logger.warning(f"File-upload strategy error: {exc}", exc_info=True)
+        finally:
+            if file_id:
+                self._delete_file(file_id, upload_id)
 
         # Strategy 2: PyPDF2 fallback
         try:
@@ -348,6 +353,16 @@ class KimiService:
         response = self.client.get(f"/files/{file_id}/content")
         response.raise_for_status()
         return response.text
+
+    def _delete_file(self, file_id: str, upload_id: Optional[int] = None) -> None:
+        """Delete an uploaded file from Kimi. Never raises — logs on failure."""
+        upload_logger = get_upload_logger(logger, upload_id)
+        try:
+            response = self.client.delete(f"/files/{file_id}")
+            response.raise_for_status()
+            upload_logger.info(f"Deleted file from Kimi: file_id={file_id}")
+        except Exception as exc:
+            upload_logger.warning(f"Failed to delete file from Kimi: file_id={file_id}: {exc}")
 
     def _extract_pdf_text(self, file_path: str) -> str:
         """Extract raw text from a PDF using PyPDF2"""

@@ -7,7 +7,18 @@ interface AllocationData {
   value: number;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+// Preset colors mapped to common asset classes for consistency
+const COLOR_MAP: Record<string, string> = {
+  equity: '#3b82f6',      // blue
+  bond: '#10b981',        // emerald
+  commodity: '#f59e0b',   // amber
+  cash: '#eab308',        // yellow/gold
+  cash_equivalent: '#eab308',
+  alternative: '#8b5cf6', // violet
+  unknown: '#6b7280',     // gray
+};
+
+const FALLBACK_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#eab308'];
 
 export default function AllocationChart({ data }: { data: AllocationData[] }) {
   if (!data.length) {
@@ -31,9 +42,10 @@ export default function AllocationChart({ data }: { data: AllocationData[] }) {
             paddingAngle={4}
             dataKey="value"
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
+            {data.map((entry, index) => {
+              const color = COLOR_MAP[entry.name.toLowerCase()] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+              return <Cell key={`cell-${index}`} fill={color} />;
+            })}
           </Pie>
           <Tooltip
             contentStyle={{
