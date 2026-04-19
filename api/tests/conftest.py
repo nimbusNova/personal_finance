@@ -10,9 +10,10 @@ from sqlalchemy.orm import sessionmaker
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.database.models import Base
+from app.database.models import Base, User, Institution, Account
 from app.database import get_db
 from app.main import app
+from app.routers.auth import create_access_token, get_password_hash
 
 
 # Use file-based test database for integration tests
@@ -83,6 +84,61 @@ def test_data_dir():
         yield tmpdir
 
 
+@pytest.fixture(scope="function")
+def test_user(db_session):
+    """Create a test user for tests that need one"""
+    user = User(
+        email="test@example.com",
+        password_hash=get_password_hash("testpassword123")
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def auth_token(test_user):
+    """Generate JWT token for test user"""
+    return create_access_token({"sub": test_user.email})
+
+
+@pytest.fixture(scope="function")
+def authenticated_client(client, auth_token):
+    """Test client with authentication header"""
+    client.headers["Authorization"] = f"Bearer {auth_token}"
+    return client
+
+
+@pytest.fixture(scope="function")
+def test_institution(db_session):
+    """Create a test institution"""
+    institution = Institution(
+        name="Test Bank",
+        type="bank"
+    )
+    db_session.add(institution)
+    db_session.commit()
+    db_session.refresh(institution)
+    return institution
+
+
+@pytest.fixture(scope="function")
+def test_account(db_session, test_user, test_institution):
+    """Create a test account for the test user"""
+    account = Account(
+        user_id=test_user.id,
+        institution_id=test_institution.id,
+        name="Test Checking",
+        account_type="checking",
+        account_number_masked="****1234"
+    )
+    db_session.add(account)
+    db_session.commit()
+    db_session.refresh(account)
+    return account
+
+
 @pytest.fixture
 def sample_brokerage_data():
     """Sample brokerage statement extraction result"""
@@ -99,19 +155,9 @@ def sample_brokerage_data():
                 "price": 280.42,
                 "market_value": 42203.21,
                 "cost_basis": 35000.00
-            },
-            {
-                "symbol": "VXUS",
-                "name": "Vanguard Total International Stock ETF",
-                "quantity": 200.0,
-                "price": 65.30,
-                "market_value": 13060.00,
-                "cost_basis": 12000.00
             }
         ],
-        "cash": {
-            "settled_cash": 5000.00
-        },
+        "cash": {"settled_cash": 5000.00},
         "total_value": 60263.21,
         "extraction_confidence": 0.94
     }
@@ -133,41 +179,14 @@ def sample_credit_card_data():
                 "category": "Groceries",
                 "amount": 142.35,
                 "is_recurring": False
-            },
-            {
-                "date": "2024-03-15",
-                "merchant": "Netflix",
-                "category": "Entertainment",
-                "amount": 15.49,
-                "is_recurring": True
-            },
-            {
-                "date": "2024-03-20",
-                "merchant": "Shell",
-                "category": "Transportation",
-                "amount": 45.00,
-                "is_recurring": False
             }
         ],
         "extraction_confidence": 0.91
     }
 
 
-@pytest.fixture(scope="function")
-def test_user(db_session):
-    """Create a test user for tests that need one"""
-    from app.database.models import User
-    from app.routers.auth import get_password_hash
-    
-    user = User(
-        email="test@example.com",
-        hashed_password=get_password_hash("testpassword123"),
-        full_name="Test User"
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
+@pytest.fixture
+def mock_kimi_response():
     """Mock response from Kimi API"""
     return {
         "success": True,
