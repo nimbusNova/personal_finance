@@ -51,7 +51,7 @@ class TestAccountsRouterAuthenticated:
         data = response.json()
         assert len(data["accounts"]) == 1
         assert data["accounts"][0]["balance"] == 5000.00
-        assert data["accounts"][0]["statement_date"] == "2024-03-15"
+        assert data["accounts"][0]["statement_date"] == "2024-03-15T00:00:00"
     
     def test_get_accounts_with_pdf_count(self, authenticated_client, test_user, test_account, db_session):
         """Test accounts include PDF count"""

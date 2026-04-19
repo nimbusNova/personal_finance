@@ -68,6 +68,9 @@ def client(test_db_path):
         database_url,
         connect_args={"check_same_thread": False}
     )
+    # Create tables for this test
+    Base.metadata.create_all(bind=engine)
+    
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
     def override_get_db():

@@ -170,6 +170,12 @@ async def list_uploads(
     }
 
 
+@router.get("/uploads/stats")
+async def upload_stats(current_user = Depends(get_current_user)):
+    """Get storage statistics"""
+    return get_storage_stats()
+
+
 @router.get("/uploads/{pdf_id}")
 async def get_upload(
     pdf_id: int,
@@ -359,9 +365,3 @@ async def delete_upload(
     upload_logger.info("Deleted PDF record")
 
     return {"message": "Upload deleted", "pdf_id": pdf_id}
-
-
-@router.get("/uploads/stats")
-async def upload_stats(current_user = Depends(get_current_user)):
-    """Get storage statistics"""
-    return get_storage_stats()

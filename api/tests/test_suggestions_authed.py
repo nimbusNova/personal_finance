@@ -364,5 +364,8 @@ class TestSuggestionsRouterAuthenticated:
             )
             
             assert response.status_code == 200
-            # accept, reject, done should all set is_active=False
-            assert response.json()["suggestion"]["is_active"] is False
+            # accept, reject set is_active=False; done keeps it active=True
+            if feedback in ["accept", "reject"]:
+                assert response.json()["suggestion"]["is_active"] is False
+            else:
+                assert response.json()["suggestion"]["is_active"] is True

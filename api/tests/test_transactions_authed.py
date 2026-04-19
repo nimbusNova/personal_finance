@@ -157,8 +157,11 @@ class TestTransactionsRouterAuthenticated:
     
     def test_get_expensive_transactions_default(self, authenticated_client, test_user, test_account, db_session):
         """Test expensive transactions with default threshold (200)"""
-        txn1 = Transaction(account_id=test_account.id, date=date(2024, 3, 15), merchant="Small", amount=Decimal("50.00"))
-        txn2 = Transaction(account_id=test_account.id, date=date(2024, 3, 16), merchant="Large", amount=Decimal("250.00"))
+        from datetime import datetime, timedelta
+        # Use recent dates (within last 30 days)
+        today = datetime.now().date()
+        txn1 = Transaction(account_id=test_account.id, date=today, merchant="Small", amount=Decimal("50.00"))
+        txn2 = Transaction(account_id=test_account.id, date=today, merchant="Large", amount=Decimal("250.00"))
         db_session.add_all([txn1, txn2])
         db_session.commit()
         
@@ -172,8 +175,10 @@ class TestTransactionsRouterAuthenticated:
     
     def test_get_expensive_transactions_custom_threshold(self, authenticated_client, test_user, test_account, db_session):
         """Test expensive transactions with custom threshold"""
-        txn1 = Transaction(account_id=test_account.id, date=date(2024, 3, 15), merchant="A", amount=Decimal("50.00"))
-        txn2 = Transaction(account_id=test_account.id, date=date(2024, 3, 16), merchant="B", amount=Decimal("100.00"))
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        txn1 = Transaction(account_id=test_account.id, date=today, merchant="A", amount=Decimal("50.00"))
+        txn2 = Transaction(account_id=test_account.id, date=today, merchant="B", amount=Decimal("100.00"))
         db_session.add_all([txn1, txn2])
         db_session.commit()
         

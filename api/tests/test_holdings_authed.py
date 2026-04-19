@@ -221,7 +221,7 @@ class TestHoldingsRouterAuthenticated:
         db_session.commit()
         
         # Create bank account with balance
-        bank_account = Account(user_id=test_user.id, institution_id=test_institution.id, name="Checking", account_type="checking")
+        bank_account = Account(user_id=test_user.id, institution_id=test_institution.id, name="Checking", account_type="bank")
         db_session.add(bank_account)
         db_session.flush()
         
@@ -261,7 +261,7 @@ class TestHoldingsRouterAuthenticated:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["cc_debt"] == 5000.0
+        assert data["credit_card_debt"] == -5000.0  # API returns raw balance
     
     def test_get_holdings_across_multiple_accounts(self, authenticated_client, test_user, test_institution, db_session):
         """Test holdings aggregated across multiple accounts"""
