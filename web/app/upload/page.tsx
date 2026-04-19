@@ -109,7 +109,6 @@ export default function UploadPage() {
     log.info(`Deleting upload ${pdfId}`);
     try {
       await deleteUpload(pdfId);
-      setMessage('Upload deleted');
       await fetchUploads();
     } catch (err: any) {
       log.error(`Delete failed: ${err.message}`);
