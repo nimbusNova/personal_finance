@@ -211,44 +211,64 @@ Return only valid JSON.
             pdf_content = f.read()
 
         files = {'file': (filename, pdf_content, 'application/pdf')}
-        response = self.client.post("/files", files=files)
+        response = self.client.post("/files", data={"purpose": "file-extract"}, files=files)
         response.raise_for_status()
         return response.json()
 
+    def _get_file_content(self, file_id: str) -> str:
+        """Retrieve extracted text content from an uploaded file."""
+        response = self.client.get(f"/files/{file_id}/content")
+        response.raise_for_status()
+        return response.text
+
     def _extract_with_file_url(self, file_obj: Dict[str, Any], system_prompt: str) -> Dict[str, Any]:
-        """Extract using Kimi chat completion with file URL reference"""
+        """Extract using Kimi chat completion with uploaded file content.
+
+        Moonshot API flow:
+        1. Upload file -> get file_id
+        2. GET /files/{file_id}/content -> extracted text
+        3. Send text as system message + user prompt to chat completion
+        """
         if isinstance(file_obj, str):
             logger.warning(f"File upload returned string instead of dict: {file_obj[:200]}")
             return {"success": False, "error": "Unexpected file upload response format"}
 
-        file_url = file_obj.get("url")
-        if not file_url and isinstance(file_obj.get("object"), dict):
-            file_url = file_obj["object"].get("url")
-        if not file_url:
-            logger.warning(f"No file_url in upload response: {json.dumps(file_obj, default=str)[:500]}")
-            return {"success": False, "error": "No file_url in upload response"}
+        file_id = file_obj.get("id")
+        if not file_id:
+            logger.warning(f"No file id in upload response: {json.dumps(file_obj, default=str)[:500]}")
+            return {"success": False, "error": "No file id in upload response"}
+
+        logger.info(f"Retrieving extracted content for file {file_id}")
+        try:
+            file_content = self._get_file_content(file_id)
+        except Exception as exc:
+            logger.warning(f"Failed to retrieve file content: {exc}")
+            return {"success": False, "error": f"Failed to retrieve file content: {exc}"}
+
+        if not file_content or len(file_content) < 50:
+            logger.warning(f"File content too short ({len(file_content)} chars), treating as failure")
+            return {"success": False, "error": "File content too short"}
+
+        logger.info(f"File content retrieved: {len(file_content)} chars")
+
+        # Truncate if too long (most APIs have context limits)
+        max_chars = 30000
+        if len(file_content) > max_chars:
+            file_content = file_content[:max_chars] + "\n...[truncated]"
 
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
+                {"role": "system", "content": file_content},
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "file",
-                            "file_url": {"url": file_url},
-                        },
-                        {
-                            "type": "text",
-                            "text": "Extract all financial data from this statement and return as JSON.",
-                        },
-                    ],
+                    "content": "Extract all financial data from this statement and return as JSON.",
                 },
             ],
             "max_tokens": 4000,
         }
-        logger.debug(f"Chat completion payload (file_url): model={self.model}")
+        logger.debug(f"Chat completion payload (file content): model={self.model}, content_len={len(file_content)}")
         return self._call_chat_completion(payload)
 
     def _extract_pdf_text(self, file_path: str) -> str:
