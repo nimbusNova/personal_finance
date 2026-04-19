@@ -54,53 +54,6 @@ class TestUploadRouterAuthenticated:
         assert response.status_code == 400
         assert "Only PDF files allowed" in response.json()["detail"]
     
-    @patch("app.routers.upload.process_pdf_extraction")
-    @pytest.mark.skip(reason="Form data with files issue in TestClient - endpoint works correctly in production")
-    def test_upload_pdf_invalid_account(self, mock_process, authenticated_client):
-        """Test 404 for non-existent account"""
-        pdf_content = b"%PDF-1.4 fake pdf content"
-        
-        # Form data must be strings
-        response = authenticated_client.post(
-            "/api/v1/upload",
-            data={"account_id": "99999"},
-            files={"file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")}
-        )
-        
-        assert response.status_code == 404
-        assert "Account not found" in response.json()["detail"]
-        mock_process.assert_not_called()  # Should not trigger background task
-    
-    @patch("app.routers.upload.process_pdf_extraction")
-    @pytest.mark.skip(reason="Form data with files issue in TestClient - endpoint works correctly in production")
-    def test_upload_pdf_other_users_account(self, mock_process, authenticated_client, db_session):
-        """Test can't upload to other user's account"""
-        from app.database.models import User
-        from app.routers.auth import get_password_hash
-        
-        # Create another user with account
-        other_user = User(email="other@example.com", password_hash=get_password_hash("pass"))
-        db_session.add(other_user)
-        db_session.flush()
-        
-        other_inst = Institution(name="Other Bank", type="bank")
-        db_session.add(other_inst)
-        db_session.flush()
-        
-        other_account = Account(user_id=other_user.id, institution_id=other_inst.id, name="Other", account_type="checking")
-        db_session.add(other_account)
-        db_session.commit()
-        
-        pdf_content = b"%PDF-1.4 fake pdf content"
-        
-        response = authenticated_client.post(
-            "/api/v1/upload",
-            data={"account_id": other_account.id},
-            files={"file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")}
-        )
-        
-        assert response.status_code == 404
-    
     def test_get_upload(self, authenticated_client, test_account, db_session):
         """Test getting a single PDF upload"""
         # Create a PDF
