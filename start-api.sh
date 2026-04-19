@@ -1,8 +1,8 @@
 #!/bin/bash
-# Start the FastAPI development server
+# Start only the FastAPI backend (useful for API development/testing)
 
 cd "$(dirname "$0")/api"
-echo "Starting Personal Finance API..."
+echo "Starting Personal Finance API (SQLite Edition)..."
 echo ""
 
 # Check if virtual environment exists
@@ -17,11 +17,17 @@ source venv/bin/activate
 # Install dependencies
 pip install -q -r requirements.txt
 
+# Initialize database if not exists
+if [ ! -f "data/personal_finance.db" ]; then
+    echo "📊 Initializing SQLite database..."
+    python -c "from app.database import init_db; init_db()"
+fi
+
 # Check if .env exists
 if [ ! -f ".env" ]; then
-    echo "⚠️  .env file not found. Copy from .env.example:"
+    echo "⚠️  .env file not found. Copy from example:"
     echo "   cp .env.example .env"
-    echo "   # Then edit .env with your Supabase and Kimi credentials"
+    echo "   # Then edit .env with your KIMI_API_KEY"
     exit 1
 fi
 
