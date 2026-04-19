@@ -30,7 +30,7 @@ app.include_router(suggestions.router, prefix="/api/v1", tags=["suggestions"])
 
 @app.on_event("startup")
 async def startup_event():
-    await init_db()
+    init_db()
 
 @app.get("/")
 async def root():
