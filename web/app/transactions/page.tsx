@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
-import { getTransactionSummary, getExpensiveTransactions } from '@/lib/api';
+import { getTransactionSummary, getExpensiveTransactions, getTransactions } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Receipt, AlertCircle, Loader2, TrendingUp } from 'lucide-react';
 
@@ -21,11 +21,24 @@ interface ExpensiveTransaction {
   amount: number;
 }
 
+interface Transaction {
+  id: number;
+  account_id: number;
+  date: string;
+  merchant: string;
+  category: string;
+  amount: number;
+  is_recurring: boolean;
+}
+
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 export default function TransactionsPage() {
   const [summary, setSummary] = useState<CategorySummary[]>([]);
   const [expensive, setExpensive] = useState<ExpensiveTransaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [txLoading, setTxLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
@@ -56,6 +69,21 @@ export default function TransactionsPage() {
     name: s.category || 'Uncategorized',
     total: s.total || 0,
   }));
+
+  const handleCategoryClick = async (category: string) => {
+    setSelectedCategory(category);
+    setTxLoading(true);
+    try {
+      const start = new Date(year, month - 1, 1).toISOString().split('T')[0];
+      const end = new Date(year, month, 0).toISOString().split('T')[0];
+      const data = await getTransactions(undefined, start, end, category);
+      setTransactions(data.transactions || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load transactions');
+    } finally {
+      setTxLoading(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -125,11 +153,23 @@ export default function TransactionsPage() {
                               borderRadius: '0.5rem',
                               color: '#fff',
                             }}
+                            itemStyle={{ color: '#fff' }}
+                            labelStyle={{ color: '#fff' }}
                             formatter={(value: number) => [formatCurrency(value), 'Total']}
+                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                           />
-                          <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                          <Bar
+                            dataKey="total"
+                            radius={[0, 4, 4, 0]}
+                            onClick={(data: any) => handleCategoryClick(data.name)}
+                            className="cursor-pointer"
+                          >
                             {chartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                                className="cursor-pointer hover:opacity-80"
+                              />
                             ))}
                           </Bar>
                         </BarChart>
@@ -177,6 +217,54 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
+              {selectedCategory && (
+                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-white">
+                      {selectedCategory} Transactions
+                    </h2>
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className="text-sm text-gray-400 hover:text-white transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  {txLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">No transactions found.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-700/50">
+                          <tr>
+                            <th className="px-4 py-3 rounded-l-lg">Date</th>
+                            <th className="px-4 py-3">Merchant</th>
+                            <th className="px-4 py-3 rounded-r-lg">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((t) => (
+                            <tr key={t.id} className="border-b border-gray-700">
+                              <td className="px-4 py-3 text-gray-400">
+                                {new Date(t.date).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3 text-white">{t.merchant}</td>
+                              <td className="px-4 py-3 text-white font-medium">
+                                {formatCurrency(t.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {summary.length > 0 && (
                 <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                   <h2 className="text-lg font-semibold text-white mb-4">Category Breakdown</h2>
@@ -191,7 +279,11 @@ export default function TransactionsPage() {
                       </thead>
                       <tbody>
                         {summary.map((s) => (
-                          <tr key={s.category} className="border-b border-gray-700">
+                          <tr
+                            key={s.category}
+                            className="border-b border-gray-700 cursor-pointer hover:bg-gray-700/30 transition"
+                            onClick={() => handleCategoryClick(s.category)}
+                          >
                             <td className="px-4 py-3 text-white">{s.category}</td>
                             <td className="px-4 py-3 text-gray-400">{s.count}</td>
                             <td className="px-4 py-3 text-white font-medium">{formatCurrency(s.total)}</td>

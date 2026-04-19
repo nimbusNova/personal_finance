@@ -365,7 +365,7 @@ def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any], upl
 
     for h in holdings_list:
         mv = Decimal(str(h.get("market_value", 0) or 0))
-        weight = float(mv / total_mv) if total_mv > 0 else 0.0
+        weight = float(mv / total_mv * 100) if total_mv > 0 else 0.0
         holding = Holding(
             snapshot_id=snapshot.id,
             symbol=h.get("symbol", "UNKNOWN"),

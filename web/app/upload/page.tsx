@@ -127,16 +127,17 @@ export default function UploadPage() {
       try {
         const data = await getUploadById(pollingId);
         setPollingStatus(data.extraction_status);
-        log.debug(`Poll PDF ${pollingId}: status=${data.extraction_status}`);
+        log.debug(`Poll PDF ${pollingId}: status=${data.extraction_status}, step=${data.processing_step}`);
+
+        // Refresh uploads list so processing_step updates in real time
+        await fetchUploads();
 
         if (data.extraction_status === 'completed') {
           setMessage('Upload & extraction complete!');
-          await fetchUploads();
           clearInterval(interval);
           setPollingId(null);
         } else if (data.extraction_status === 'failed') {
           setMessage(`Extraction failed: ${data.error_message || 'Unknown error'}`);
-          await fetchUploads();
           clearInterval(interval);
           setPollingId(null);
         }
