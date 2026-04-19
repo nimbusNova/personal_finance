@@ -1,6 +1,7 @@
 """Configuration for local SQLite deployment"""
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import os
 
 
 class Settings(BaseSettings):
@@ -9,11 +10,11 @@ class Settings(BaseSettings):
     api_port: int = 8000
     debug: bool = False
     
-    # Paths (local storage)
-    data_dir: str = "data"
-    db_path: str = "data/personal_finance.db"
-    pdf_storage_path: str = "data/pdfs"
-    exports_path: str = "data/exports"
+    # Paths (local storage) - use absolute paths for CI/CD
+    data_dir: str = os.path.join(os.getcwd(), "data")
+    db_path: str = os.path.join(os.getcwd(), "data", "personal_finance.db")
+    pdf_storage_path: str = os.path.join(os.getcwd(), "data", "pdfs")
+    exports_path: str = os.path.join(os.getcwd(), "data", "exports")
     
     # Kimi (Moonshot AI)
     kimi_api_key: str = ""
@@ -27,6 +28,8 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        # Allow extra fields for forward compatibility
+        extra = "ignore"
 
 
 @lru_cache()

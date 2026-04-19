@@ -28,6 +28,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
+    - name: Create .env file
+      working-directory: ./api
+      run: |
+        echo "KIMI_API_KEY=test-key-for-ci" > .env
+        echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+    
+    - name: Initialize database
+      working-directory: ./api
+      run: |
+        python -c "from app.database import init_db; init_db()"
+    
     - name: Run unit tests
       working-directory: ./api
       run: |
