@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut, Cloud } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -18,6 +18,7 @@ const navItems = [
   { href: '/holdings', label: 'Holdings', icon: PieChart },
   { href: '/transactions', label: 'Spending', icon: Receipt },
   { href: '/suggestions', label: 'Suggestions', icon: Lightbulb },
+  { href: '/kimi-files', label: 'Kimi Files', icon: Cloud },
 ];
 
 export default function Navbar() {
