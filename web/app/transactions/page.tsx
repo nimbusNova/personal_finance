@@ -5,7 +5,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
 import { usePrivacy } from '@/app/context/PrivacyContext';
 import { formatCurrencyPrivate } from '@/lib/formatters';
-import { getTransactionSummary, getExpensiveTransactions, getTransactions } from '@/lib/api';
+import { getTransactionSummary, getExpensiveTransactions, getTransactions, updateTransactionCategory } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Receipt, AlertCircle, Loader2, TrendingUp, X } from 'lucide-react';
 
@@ -53,8 +53,16 @@ export default function TransactionsPage() {
   const [txLoading, setTxLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingTx, setEditingTx] = useState<number | null>(null);
+  const [editCategory, setEditCategory] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
+
+  const COMMON_CATEGORIES = [
+    'Food', 'Transportation', 'Shopping', 'Entertainment',
+    'Utilities', 'Healthcare', 'Travel', 'Groceries',
+    'Income', 'Transfer', 'Bill Payment', 'Other'
+  ];
 
   useEffect(() => {
     async function fetchData() {
@@ -88,6 +96,7 @@ export default function TransactionsPage() {
     setSelectedCategory(category);
     setTxLoading(true);
     setError('');
+    setEditingTx(null);
     try {
       const start = new Date(year, month - 1, 1).toISOString().split('T')[0];
       const end = new Date(year, month, 0).toISOString().split('T')[0];
@@ -97,6 +106,20 @@ export default function TransactionsPage() {
       setError(toErrorMessage(err));
     } finally {
       setTxLoading(false);
+    }
+  };
+
+  const handleSaveCategory = async (txId: number) => {
+    if (!editCategory) return;
+    try {
+      await updateTransactionCategory(txId, editCategory);
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === txId ? { ...t, category: editCategory } : t))
+      );
+      setEditingTx(null);
+      setEditCategory('');
+    } catch (err) {
+      setError(toErrorMessage(err));
     }
   };
 
@@ -292,18 +315,61 @@ export default function TransactionsPage() {
                           <tr>
                             <th className="px-4 py-3 rounded-l-lg">Date</th>
                             <th className="px-4 py-3">Merchant</th>
-                            <th className="px-4 py-3 rounded-r-lg">Amount</th>
+                            <th className="px-4 py-3">Amount</th>
+                            <th className="px-4 py-3 rounded-r-lg">Category</th>
                           </tr>
                         </thead>
                         <tbody>
                           {transactions.map((t) => (
-                            <tr key={t.id} className="border-b border-gray-700">
+                            <tr
+                              key={t.id}
+                              className="border-b border-gray-700 hover:bg-gray-700/30 transition"
+                            >
                               <td className="px-4 py-3 text-gray-400">
                                 {new Date(t.date).toLocaleDateString()}
                               </td>
                               <td className="px-4 py-3 text-white">{t.merchant}</td>
                               <td className="px-4 py-3 text-white font-medium">
                                 {formatCurrency(t.amount)}
+                              </td>
+                              <td className="px-4 py-3">
+                                {editingTx === t.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <select
+                                      value={editCategory}
+                                      onChange={(e) => setEditCategory(e.target.value)}
+                                      className="bg-gray-700 border border-gray-600 text-white text-xs rounded px-2 py-1 outline-none"
+                                      autoFocus
+                                    >
+                                      <option value="">Select...</option>
+                                      {COMMON_CATEGORIES.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      onClick={() => handleSaveCategory(t.id)}
+                                      className="text-xs text-green-400 hover:text-green-300"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      onClick={() => { setEditingTx(null); setEditCategory(''); }}
+                                      className="text-xs text-gray-400 hover:text-white"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setEditingTx(t.id);
+                                      setEditCategory(t.category);
+                                    }}
+                                    className="text-xs text-primary-300 hover:text-primary-200 hover:underline"
+                                  >
+                                    {t.category || 'Uncategorized'}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}

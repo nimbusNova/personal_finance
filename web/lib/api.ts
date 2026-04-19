@@ -198,3 +198,10 @@ export async function deleteKimiFile(fileId: string) {
     method: 'DELETE',
   });
 }
+
+export async function updateTransactionCategory(transactionId: number, category: string) {
+  return fetchApi(`/api/v1/transactions/${transactionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ category }),
+  });
+}

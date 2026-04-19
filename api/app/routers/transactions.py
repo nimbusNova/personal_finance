@@ -1,6 +1,7 @@
 """Transactions router - SQLite edition"""
 import logging
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -150,4 +151,38 @@ async def get_expensive_transactions(
         "threshold": threshold,
         "days": days,
         "count": len(transactions)
+    }
+
+
+class TransactionUpdate(BaseModel):
+    category: str
+
+
+@router.patch("/transactions/{transaction_id}")
+async def update_transaction(
+    transaction_id: int,
+    update: TransactionUpdate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a transaction's category."""
+    logger.info(f"Update transaction {transaction_id}: category={update.category} by {current_user.email}")
+    
+    transaction = db.query(Transaction).join(Account).filter(
+        Transaction.id == transaction_id,
+        Account.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    transaction.category = update.category
+    db.commit()
+    db.refresh(transaction)
+    
+    logger.info(f"Updated transaction {transaction_id} to category={update.category}")
+    return {
+        "id": transaction.id,
+        "category": transaction.category,
+        "message": "Category updated"
     }
