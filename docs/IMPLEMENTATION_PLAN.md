@@ -1,367 +1,424 @@
-# Implementation Plan - Personal Finance Portfolio Intelligence
+# Implementation Plan - Personal Finance Portfolio Intelligence (SQLite Edition)
 
-## Revised Phase 1 Scope (10-12 weeks)
+## Philosophy
+- **100% Self-Hosted**: SQLite database + local file storage
+- **Zero Accounts Required**: Run locally without cloud services
+- **Simple Deployment**: Just run the app, no Supabase/Railway setup
+- **Kimi-native**: PDF extraction via Kimi API
+- **Single-user**: Simple password auth
 
-### Philosophy
-- **MVP-first**: Get PDF ingestion working end-to-end before adding complexity
-- **Kimi-native**: Zero OCR libraries, let Kimi handle everything
-- **Single-user**: No auth complexity, simple password gate
-- **Data ownership**: JSON export from day one
+## Stack
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Database | SQLite (local file) | `data/personal_finance.db` |
+| File Storage | Local filesystem | `data/pdfs/{year}/{month}/` |
+| Backend | FastAPI | Python, runs locally |
+| Frontend | Next.js 14 | TypeScript, Tailwind |
+| AI | Kimi API (Moonshot) | PDF extraction |
+| Charts | Recharts | React charting |
+| Auth | Simple password | Local JWT |
+
+## Directory Structure
+
+```
+personal_finance/
+├── api/                          # FastAPI backend
+│   ├── app/
+│   │   ├── main.py              # FastAPI app
+│   │   ├── config.py            # SQLite path, Kimi key
+│   │   ├── database/
+│   │   │   ├── connection.py    # SQLite engine
+│   │   │   ├── models.py        # SQLAlchemy models
+│   │   │   └── init_db.py       # Create tables
+│   │   ├── services/
+│   │   │   ├── pdf_service.py   # Local file storage
+│   │   │   └── kimi_service.py  # Kimi API wrapper
+│   │   └── routers/
+│   │       ├── auth.py          # Simple password auth
+│   │       ├── upload.py        # PDF upload to local storage
+│   │       ├── holdings.py      # Portfolio data
+│   │       ├── transactions.py  # Spending data
+│   │       └── suggestions.py   # AI suggestions
+│   ├── data/                     # Local data (gitignored)
+│   │   ├── personal_finance.db # SQLite database
+│   │   ├── pdfs/                # PDF storage
+│   │   │   └── {year}/
+│   │   │       └── {month}/
+│   │   │           └── {uuid}.pdf
+│   │   └── exports/             # JSON/CSV exports
+│   ├── requirements.txt
+│   └── .env                     # Kimi API key
+├── web/                          # Next.js frontend
+│   ├── app/                     # App router
+│   ├── lib/api.ts               # API client
+│   └── package.json
+├── docs/                         # Documentation
+│   ├── ERD.md                   # SQLite schema
+│   ├── PRD.md                   # Original PRD
+│   └── IMPLEMENTATION_PLAN.md   # This file
+└── start.sh                      # Start both services
+```
 
 ---
 
-## Week 1-2: Foundation
+## Phase 1: MVP (10 weeks)
 
-### M1: Infrastructure & Auth
-**Goal:** Working Next.js + FastAPI + Supabase skeleton
+### Week 1: Foundation
 
-**Backend (FastAPI)**
-```
-api/
-├── main.py                 # FastAPI app
-├── config.py              # Settings (Kimi key, Supabase creds)
-├── database/
-│   ├── connection.py      # Supabase client
-│   └── models.py          # SQLAlchemy models from ERD
-├── routers/
-│   ├── auth.py            # Simple password auth
-│   ├── upload.py          # PDF upload endpoint
-│   └── health.py          # Health check
-└── requirements.txt
-```
+**Goal:** SQLite database + local file storage working
 
-**Frontend (Next.js)**
-```
-web/
-├── app/
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Dashboard
-│   ├── upload/page.tsx    # PDF upload
-│   └── login/page.tsx     # Simple password gate
-├── components/
-│   ├── UploadDropzone.tsx
-│   └── Navigation.tsx
-├── lib/
-│   └── supabase.ts        # Supabase client
-└── package.json
-```
+**Backend:**
+- [ ] Create `api/database/init_db.py` to initialize SQLite
+- [ ] Update `api/database/connection.py` for SQLite
+- [ ] Create `api/data/` directory structure
+- [ ] Update `api/config.py` for local paths
+- [ ] Update requirements (remove supabase, add sqlalchemy)
 
-**Deliverables:**
-- [ ] FastAPI running locally
-- [ ] Next.js on Vercel
-- [ ] Supabase project created
-- [ ] Tables created (users, accounts, pdfs, portfolio_snapshots, holdings)
-- [ ] Simple password login working
-
-**Stack:**
-- Next.js 14 (App Router, TypeScript, Tailwind)
-- FastAPI (local dev → Railway for prod)
-- Supabase (PostgreSQL + Storage)
-- shadcn/ui (components)
-
----
-
-## Week 3-4: PDF Pipeline Core
-
-### M2: Kimi PDF Ingestion
-**Goal:** Upload PDF → Kimi extracts → Store in DB
-
-**Backend Work:**
-- [ ] Supabase Storage integration
-- [ ] Kimi API client with retry logic
-- [ ] Document type detection (brokerage vs credit card)
-- [ ] Extraction schema validation
-- [ ] `extraction_jobs` table for job tracking
-
-**Kimi Prompts:**
+**Key Changes:**
 ```python
-BROKERAGE_PROMPT = """
-Analyze this brokerage statement PDF. 
-Return JSON with:
-- doc_type: "brokerage"
-- institution: string
-- account_type: string (401k, IRA, Taxable, etc)
-- statement_date: YYYY-MM-DD
-- holdings: array of {symbol, name, quantity, price, market_value, cost_basis}
-- cash: {settled_cash}
-- extraction_confidence: 0-1
+# database/connection.py
+from sqlalchemy import create_engine
+from app.config import get_settings
 
-Be precise. If uncertain, mark low confidence.
-"""
-
-CREDIT_CARD_PROMPT = """
-Analyze this credit card statement PDF.
-Return JSON with:
-- doc_type: "credit_card"
-- institution: string
-- account_name: string
-- statement_date: YYYY-MM-DD
-- statement_balance: number
-- transactions: array of {date, merchant, category, amount}
-- extraction_confidence: 0-1
-
-Infer category from merchant name when not explicit.
-"""
+engine = create_engine('sqlite:///data/personal_finance.db')
 ```
 
-**Frontend Work:**
-- [ ] Drag-drop upload zone
-- [ ] Progress tracking (per file)
-- [ ] Extraction review screen (side-by-side PDF + JSON)
-- [ ] Confirm/Correct buttons
-
 **Deliverables:**
-- [ ] Upload PDF → see extraction results
-- [ ] Review screen with raw PDF and extracted JSON
-- [ ] Confirm saves to DB
-- [ ] Handle extraction failures gracefully
+- [ ] Run `python api/database/init_db.py` → creates SQLite database
+- [ ] FastAPI starts with SQLite connection
+- [ ] Health check endpoint works
 
 ---
 
-## Week 5: Data Normalization
+### Week 2: Local File Storage + Kimi
 
-### M3: Holdings & Transactions
-**Goal:** Clean, normalized data ready for analytics
+**Goal:** Upload PDF → Save locally → Kimi extracts
 
 **Backend:**
-- [ ] Ticker normalization (VTI → Vanguard Total Stock Market)
-- [ ] Asset class resolution (ETF → Equity → US Large Cap)
-- [ ] Merchant normalization (AMZN → Amazon)
-- [ ] Category standardization
-- [ ] Data validation rules:
-  - Sum of holdings ≈ total account value
-  - No negative quantities
-  - Dates within statement period
-  - Duplicate transaction detection
+- [ ] Create `api/services/pdf_service.py`
+  - Save uploaded PDF to `data/pdfs/{year}/{month}/{uuid}.pdf`
+  - Generate file path, create directories
+- [ ] Create `api/services/kimi_service.py`
+  - Call Kimi API with PDF path
+  - Handle retries, errors
+  - Return structured JSON
+- [ ] Update `api/routers/upload.py`
+  - Save file locally instead of Supabase
+  - Trigger Kimi extraction
+  - Save metadata to SQLite
 
-**Manual Correction UI:**
-- [ ] Edit extracted JSON inline
-- [ ] Save corrections to `manual_corrections` table
-- [ ] Mark holdings as manually corrected
+**File Storage:**
+```python
+# Save PDF
+file_id = str(uuid.uuid4())
+file_path = f"data/pdfs/{year}/{month}/{file_id}.pdf"
+os.makedirs(os.path.dirname(file_path), exist_ok=True)
+with open(file_path, 'wb') as f:
+    f.write(file_content)
+```
 
 **Deliverables:**
-- [ ] Upload brokerage statement → normalized holdings
-- [ ] Upload credit card statement → normalized transactions
-- [ ] Can manually fix extraction errors
-- [ ] Data validation catches obvious errors
+- [ ] Upload PDF → saved to `data/pdfs/`
+- [ ] Kimi extracts data from PDF
+- [ ] Extraction metadata saved to SQLite
 
 ---
 
-## Week 6: Dashboard v1
+### Week 3: Extraction Review UI
 
-### M4: Basic Analytics
-**Goal:** See your portfolio and spending
-
-**Portfolio View:**
-- [ ] Total AUM (across all accounts)
-- [ ] Holdings table (symbol, quantity, value, weight %)
-- [ ] Simple pie chart: allocation by asset class
-- [ ] Cash vs invested breakdown
-
-**Spending View:**
-- [ ] Monthly spend by category
-- [ ] Top merchants
-- [ ] Recent transactions table
-- [ ] Flag expensive items (>$200 default)
-
-**Charts:**
-- [ ] Recharts for portfolio pie chart
-- [ ] Recharts for spending bar chart
-- [ ] (Skip Tremor for now — add in Phase 1.5)
-
-**Deliverables:**
-- [ ] Dashboard shows current portfolio
-- [ ] Dashboard shows spending breakdown
-- [ ] Charts render correctly
-
----
-
-## Week 7-8: Historical Data
-
-### M5: Time Series & Backfill
-**Goal:** Upload multiple months → see trends
-
-**Backend:**
-- [ ] Batch upload API (multiple PDFs)
-- [ ] Chronological processing (oldest first)
-- [ ] Detect holding changes between statements
-- [ ] Calculate MoM changes
-- [ ] Store historical snapshots
+**Goal:** User can review and correct Kimi extractions
 
 **Frontend:**
-- [ ] Batch upload UI (drag 12 PDFs at once)
-- [ ] Processing queue display
-- [ ] Historical charts:
-  - Net worth over time
-  - Allocation drift
-  - Top gainers/losers
+- [ ] Create `web/app/upload/page.tsx`
+  - Drag-drop upload zone
+  - Progress tracking
+- [ ] Create review screen
+  - Show PDF side-by-side with extracted JSON
+  - Edit JSON inline
+  - Confirm/Correct buttons
+- [ ] Update `web/lib/api.ts` for local API calls
+
+**Backend:**
+- [ ] Endpoint to get PDF + extraction data
+- [ ] Endpoint to save corrections
+
+**Deliverables:**
+- [ ] Upload PDF → see review screen
+- [ ] Can edit extraction results
+- [ ] Confirm saves to database
+
+---
+
+### Week 4: Data Normalization
+
+**Goal:** Clean, normalized holdings and transactions
+
+**Backend:**
+- [ ] Ticker normalization (VTI → name, asset class)
+- [ ] Asset class resolution
+- [ ] Category standardization
+- [ ] Data validation:
+  - Sum of holdings ≈ total value
+  - No negative quantities
+  - Duplicate detection
+- [ ] `manual_corrections` table
+
+**Deliverables:**
+- [ ] Brokerage statement → normalized holdings
+- [ ] Credit card statement → normalized transactions
+- [ ] Data validation catches errors
+
+---
+
+### Week 5: Dashboard v1
+
+**Goal:** See portfolio and spending
+
+**Frontend:**
+- [ ] Dashboard layout
+  - Total net worth card
+  - Holdings table
+  - Simple pie chart (allocation)
+- [ ] Spending view
+  - Monthly by category
+  - Recent transactions
+  - Expensive items (>$200)
+
+**Backend:**
+- [ ] `/api/v1/portfolio/summary` endpoint
+- [ ] `/api/v1/transactions/summary` endpoint
+
+**Deliverables:**
+- [ ] Dashboard shows portfolio
+- [ ] Dashboard shows spending
+- [ ] Charts render with Recharts
+
+---
+
+### Week 6: Historical Data
+
+**Goal:** Multiple statements → time series
+
+**Backend:**
+- [ ] Batch upload (multiple PDFs)
+- [ ] Chronological processing
+- [ ] Historical snapshots
+- [ ] Net worth over time calculation
+
+**Frontend:**
+- [ ] Batch upload UI
+- [ ] Net worth chart (time series)
+- [ ] Allocation drift chart
 
 **Deliverables:**
 - [ ] Upload 12 months of statements
-- [ ] See net worth chart over time
-- [ ] See how allocation changed
+- [ ] See net worth over time
+- [ ] See allocation changes
 
 ---
 
-## Week 9: AI Suggestions (Core)
+### Week 7: AI Suggestions
 
-### M6: Basic Recommendations
-**Goal:** AI suggests portfolio changes with reasoning
+**Goal:** Kimi suggests portfolio improvements
 
 **Backend:**
-- [ ] Kimi prompt for suggestions:
-```python
-SUGGESTION_PROMPT = """
-Given this portfolio and life stage profile, suggest improvements.
-
-Portfolio: {holdings_json}
-Profile: {life_stage_json}
-
-Return array of suggestions:
-{
-  "suggestions": [
-    {
-      "type": "rebalance" | "buy" | "sell" | "diversify",
-      "action": "Sell $5000 of VTI",
-      "reasoning": "Your US equity allocation is 75%, target is 60%...",
-      "confidence": 0.85,
-      "priority": "high"
-    }
-  ]
-}
-"""
-```
-- [ ] Store suggestions in `ai_suggestions` table
-- [ ] Link to `life_stage_profile` for context
+- [ ] Suggestion prompt for Kimi
+- [ ] Store suggestions in SQLite
+- [ ] Link to life stage profile
 
 **Frontend:**
-- [ ] Suggestions inbox (list view)
-- [ ] Suggestion detail card (what, why, trade-offs)
+- [ ] Suggestions inbox
+- [ ] Suggestion detail (what, why, trade-offs)
 - [ ] Accept/Reject/Snooze buttons
-- [ ] Decision trail view
 
 **Deliverables:**
-- [ ] Dashboard shows 3-5 active suggestions
+- [ ] Dashboard shows active suggestions
 - [ ] Can accept/reject suggestions
-- [ ] Decision history view
 
 ---
 
-## Week 10: Life Stage & Monthly Report
+### Week 8: Life Stage Profile
 
-### M7: Profile Wizard
 **Goal:** Capture user profile for contextual suggestions
 
 **Frontend:**
-- [ ] Onboarding wizard (4 steps):
-  1. Basic info (age, income)
-  2. Risk tolerance (slider 1-10)
-  3. Goals (retirement date, major purchases)
-  4. Target allocation (auto-suggest from age)
+- [ ] Onboarding wizard:
+  1. Age, income
+  2. Risk tolerance (1-10)
+  3. Goals (retirement, house, etc)
+  4. Target allocation
 - [ ] Profile edit page
-- [ ] Version history (see past profiles)
 
 **Backend:**
-- [ ] Auto-generate target allocation from age (120-age rule)
+- [ ] Auto-generate target allocation (120-age rule)
 - [ ] Store profile versions
-- [ ] Suggestions reference active profile
 
 **Deliverables:**
-- [ ] Complete onboarding wizard
+- [ ] Complete onboarding
 - [ ] Profile affects suggestions
-- [ ] Can edit profile and see history
 
 ---
 
-## Week 11-12: Monthly Report & Polish
+### Week 9: Monthly Report (Local)
 
-### M8: Monthly Report Generation
-**Goal:** Auto-generated monthly summary
+**Goal:** Generate monthly report locally
 
 **Backend:**
-- [ ] GitHub Actions cron (1st of month at 6am)
-- [ ] Aggregate snapshots from last 30 days
+- [ ] Create `api/scripts/generate_monthly_report.py`
+- [ ] Aggregate last 30 days
 - [ ] Calculate MoM metrics
 - [ ] Generate Kimi summary
-- [ ] Store in `monthly_reports`
+- [ ] Save report to `data/reports/{year}-{month}.json`
 
 **Frontend:**
-- [ ] Monthly report page:
-  - Executive summary
-  - Net worth change
-  - Allocation drift
-  - Top gainers/losers
-  - Active suggestions
-  - Spending summary
-- [ ] Report archive (date picker)
-- [ ] Email/Telegram notification on completion
+- [ ] Monthly report page
+- [ ] Report archive
 
-**Polish:**
-- [ ] Dark mode
-- [ ] Mobile responsive (works on phone)
-- [ ] Loading states
-- [ ] Error handling
-- [ ] JSON export button
+**CLI Usage:**
+```bash
+python api/scripts/generate_monthly_report.py
+# or add to crontab:
+# 0 9 1 * * cd ~/Desktop/nimbusnova/personal_finance && python api/scripts/generate_monthly_report.py
+```
 
 **Deliverables:**
-- [ ] Monthly report auto-generates
-- [ ] Viewable in dashboard
-- [ ] Responsive on mobile
-- [ ] Can export all data as JSON
+- [ ] Generate monthly report via CLI
+- [ ] View report in dashboard
 
 ---
 
-## Phase 1.5 (Post-MVP Enhancements)
+### Week 10: Export & Polish
 
-After core is working:
+**Goal:** Data ownership + polish
 
-| Feature | Effort | Value |
-|---------|--------|-------|
-| Tremor charts | 2 days | Better visuals |
-| Recurring detection | 3 days | Better spending insights |
-| PDF print-to-PDF export | 2 days | Share with advisors |
-| PWA | 1 day | Home screen icon |
-| Kimi narrative reports | 3 days | AI-written summaries |
-| Personal manifesto | 2 days | Custom investing rules |
+**Backend:**
+- [ ] Create `api/scripts/export_data.py`
+  - JSON export: `python export_data.py --format json`
+  - CSV export: `python export_data.py --format csv`
+- [ ] Database backup helper
 
----
+**Frontend:**
+- [ ] Export button in UI
+- [ ] Dark mode polish
+- [ ] Mobile responsive
 
-## Tech Decisions
-
-### Why FastAPI + Railway (not serverless)?
-- Kimi API calls take 10-30 seconds
-- Need background job processing
-- Python ecosystem for data processing
-
-### Why Supabase?
-- Single vendor: DB + Storage + Auth
-- Generous free tier
-- PostgreSQL (real database)
-- Good local dev experience
-
-### Why not Phase 1?
-- PWA: Add later, responsive web works
-- Diversity scoring: Complex algo, show % first
-- AI narrative: Template summaries work
-- PDF export: Print to PDF works
-- Spending AI insights: Manual categorization first
+**Deliverables:**
+- [ ] Export all data as JSON/CSV
+- [ ] SQLite backup works
+- [ ] Polished UI
 
 ---
 
-## Success Metrics
+## Usage
 
-**Week 6:** Can upload 1 brokerage statement, see holdings
-**Week 8:** Can upload 12 months, see net worth chart
-**Week 10:** Getting contextual suggestions
-**Week 12:** Monthly report auto-generates, using weekly
+### Start the app
+
+```bash
+# 1. Setup (one-time)
+cd ~/Desktop/nimbusnova/personal_finance
+
+# Backend
+cd api
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your KIMI_API_KEY
+python database/init_db.py
+
+# Frontend (new terminal)
+cd web
+npm install
+
+# 2. Run (every time)
+./start.sh
+# → Backend: http://localhost:8000
+# → Frontend: http://localhost:3000
+```
+
+### Generate monthly report
+
+```bash
+cd ~/Desktop/nimbusnova/personal_finance/api
+source venv/bin/activate
+python scripts/generate_monthly_report.py
+```
+
+### Export your data
+
+```bash
+cd ~/Desktop/nimbusnova/personal_finance/api
+python scripts/export_data.py --format json
+# → data/exports/2024-04-18_personal_finance.json
+```
+
+### Backup database
+
+```bash
+cp data/personal_finance.db backups/personal_finance_$(date +%Y%m%d).db
+```
 
 ---
 
-## Risk Mitigation
+## Phase 2 (Future): Optional Cloud
+
+When ready for public/cloud deployment:
+
+1. **PostgreSQL migration**
+   ```bash
+   sqlite3 data/personal_finance.db .dump > backup.sql
+   # Import to PostgreSQL
+   ```
+
+2. **Cloud storage**: Move `data/pdfs/` to S3
+
+3. **Deploy FastAPI**: Railway/Render
+
+4. **Deploy Next.js**: Vercel
+
+5. **Add multi-tenant auth**: Clerk or Supabase Auth
+
+---
+
+## Benefits of SQLite Edition
+
+| Benefit | Description |
+|---------|-------------|
+| **No accounts** | Just run, no signup |
+| **Privacy** | Data stays on your machine |
+| **Offline** | Works without internet (except Kimi API) |
+| **Simple** | One command to start |
+| **Portable** | Copy folder to any machine |
+| **Durable** | SQLite is battle-tested |
+
+---
+
+## Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| Kimi extraction inaccurate | Manual correction UI, track corrections |
-| 12 weeks too long | MVP checkpoints at week 4, 8 |
-| Supabase downtime | JSON export from day 1 |
-| Complex scope | Cut features to Phase 1.5 |
+| Data loss | JSON export, SQLite backups |
+| Single-machine | Can sync `data/` folder via Dropbox/iCloud |
+| Concurrency | Not an issue for single-user |
+| Kimi API downtime | Queue jobs, retry later |
+
+---
+
+## Files to Update
+
+1. `api/requirements.txt` - Remove supabase, add sqlalchemy
+2. `api/config.py` - Change to SQLite paths
+3. `api/database/connection.py` - SQLite engine
+4. `api/database/models.py` - Already compatible
+5. `api/routers/upload.py` - Local file storage
+6. `api/routers/auth.py` - Remove Supabase, use SQLite
+7. `api/routers/*.py` - Update queries to use SQLAlchemy
+8. `web/lib/api.ts` - Remove Supabase client, use fetch
+9. Add `api/services/pdf_service.py`
+10. Add `api/services/kimi_service.py`
+11. Add `api/database/init_db.py`
+12. Add `api/scripts/generate_monthly_report.py`
+13. Add `api/scripts/export_data.py`
+14. Add `start.sh`
+15. Update `README.md`

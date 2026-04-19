@@ -1,4 +1,4 @@
-"""Configuration management"""
+"""Configuration for local SQLite deployment"""
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -9,22 +9,20 @@ class Settings(BaseSettings):
     api_port: int = 8000
     debug: bool = False
     
-    # Supabase
-    supabase_url: str = ""
-    supabase_key: str = ""
-    supabase_service_key: str = ""
+    # Paths (local storage)
+    data_dir: str = "data"
+    db_path: str = "data/personal_finance.db"
+    pdf_storage_path: str = "data/pdfs"
+    exports_path: str = "data/exports"
     
     # Kimi (Moonshot AI)
     kimi_api_key: str = ""
     kimi_base_url: str = "https://api.moonshot.cn/v1"
     
     # Auth
-    secret_key: str = "your-secret-key-change-in-production"
+    secret_key: str = "change-this-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-    
-    # Storage
-    storage_bucket: str = "pdfs"
     
     class Config:
         env_file = ".env"
