@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
+import { usePrivacy } from '@/app/context/PrivacyContext';
+import { formatCurrencyPrivate } from '@/lib/formatters';
 import { getTransactionSummary, getExpensiveTransactions, getTransactions } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Receipt, AlertCircle, Loader2, TrendingUp } from 'lucide-react';
+import { Receipt, AlertCircle, Loader2, TrendingUp, X } from 'lucide-react';
 
 interface CategorySummary {
   category: string;
@@ -33,6 +35,16 @@ interface Transaction {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'An unexpected error occurred';
+  }
+}
+
 export default function TransactionsPage() {
   const [summary, setSummary] = useState<CategorySummary[]>([]);
   const [expensive, setExpensive] = useState<ExpensiveTransaction[]>([]);
@@ -46,15 +58,17 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
+      setError('');
       try {
-        const [summaryData, expensiveData] = await Promise.all([
+        const [summaryRes, expensiveRes] = await Promise.all([
           getTransactionSummary(year, month).catch(() => ({ summary: [] })),
           getExpensiveTransactions().catch(() => ({ transactions: [] })),
         ]);
-        setSummary(summaryData.summary || []);
-        setExpensive(expensiveData.transactions || []);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load transactions');
+        setSummary(Array.isArray(summaryRes?.summary) ? summaryRes.summary : []);
+        setExpensive(Array.isArray(expensiveRes?.transactions) ? expensiveRes.transactions : []);
+      } catch (err) {
+        setError(toErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -62,24 +76,25 @@ export default function TransactionsPage() {
     fetchData();
   }, [year, month]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+  const { showAmounts } = usePrivacy();
+  const formatCurrency = (val: number) => formatCurrencyPrivate(val, showAmounts);
 
   const chartData = summary.map((s) => ({
     name: s.category || 'Uncategorized',
-    total: s.total || 0,
+    total: Number(s.total) || 0,
   }));
 
   const handleCategoryClick = async (category: string) => {
     setSelectedCategory(category);
     setTxLoading(true);
+    setError('');
     try {
       const start = new Date(year, month - 1, 1).toISOString().split('T')[0];
       const end = new Date(year, month, 0).toISOString().split('T')[0];
       const data = await getTransactions(undefined, start, end, category);
-      setTransactions(data.transactions || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load transactions');
+      setTransactions(Array.isArray(data?.transactions) ? data.transactions : []);
+    } catch (err) {
+      setError(toErrorMessage(err));
     } finally {
       setTxLoading(false);
     }
@@ -125,7 +140,7 @@ export default function TransactionsPage() {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          ) : error ? (
+          ) : error && !selectedCategory ? (
             <div className="flex items-center justify-center h-64 text-red-400 gap-2">
               <AlertCircle className="w-5 h-5" />
               {error}
@@ -151,24 +166,18 @@ export default function TransactionsPage() {
                               backgroundColor: '#1f2937',
                               border: '1px solid #374151',
                               borderRadius: '0.5rem',
-                              color: '#fff',
                             }}
                             itemStyle={{ color: '#fff' }}
                             labelStyle={{ color: '#fff' }}
                             formatter={(value: number) => [formatCurrency(value), 'Total']}
-                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                           />
-                          <Bar
-                            dataKey="total"
-                            radius={[0, 4, 4, 0]}
-                            onClick={(data: any) => handleCategoryClick(data.name)}
-                            className="cursor-pointer"
-                          >
+                          <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                             {chartData.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={COLORS[index % COLORS.length]}
                                 className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleCategoryClick(entry.name)}
                               />
                             ))}
                           </Bar>
@@ -217,54 +226,6 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              {selectedCategory && (
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-white">
-                      {selectedCategory} Transactions
-                    </h2>
-                    <button
-                      onClick={() => setSelectedCategory(null)}
-                      className="text-sm text-gray-400 hover:text-white transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                  {txLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                    </div>
-                  ) : transactions.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">No transactions found.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-400 uppercase bg-gray-700/50">
-                          <tr>
-                            <th className="px-4 py-3 rounded-l-lg">Date</th>
-                            <th className="px-4 py-3">Merchant</th>
-                            <th className="px-4 py-3 rounded-r-lg">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {transactions.map((t) => (
-                            <tr key={t.id} className="border-b border-gray-700">
-                              <td className="px-4 py-3 text-gray-400">
-                                {new Date(t.date).toLocaleDateString()}
-                              </td>
-                              <td className="px-4 py-3 text-white">{t.merchant}</td>
-                              <td className="px-4 py-3 text-white font-medium">
-                                {formatCurrency(t.amount)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {summary.length > 0 && (
                 <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
                   <h2 className="text-lg font-semibold text-white mb-4">Category Breakdown</h2>
@@ -295,6 +256,64 @@ export default function TransactionsPage() {
                 </div>
               )}
             </>
+          )}
+
+          {/* Modal */}
+          {selectedCategory && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+              <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[80vh] flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                  <h2 className="text-lg font-semibold text-white">
+                    {selectedCategory} Transactions
+                  </h2>
+                  <button
+                    onClick={() => setSelectedCategory(null)}
+                    className="p-1 text-gray-400 hover:text-white transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto">
+                  {txLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center h-32 text-red-400 gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      {error}
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <p className="text-gray-400 text-center py-8">No transactions found.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-700/50">
+                          <tr>
+                            <th className="px-4 py-3 rounded-l-lg">Date</th>
+                            <th className="px-4 py-3">Merchant</th>
+                            <th className="px-4 py-3 rounded-r-lg">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((t) => (
+                            <tr key={t.id} className="border-b border-gray-700">
+                              <td className="px-4 py-3 text-gray-400">
+                                {new Date(t.date).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3 text-white">{t.merchant}</td>
+                              <td className="px-4 py-3 text-white font-medium">
+                                {formatCurrency(t.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </main>
       </div>
