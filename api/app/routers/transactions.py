@@ -1,4 +1,5 @@
 """Transactions router - SQLite edition"""
+import logging
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ from app.database.models import Transaction, Account
 from app.routers.auth import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger("api.transactions")
 
 
 @router.get("/transactions")
@@ -23,6 +25,7 @@ async def get_transactions(
     db: Session = Depends(get_db)
 ):
     """Get transactions with filters"""
+    logger.debug(f"Get transactions: user={current_user.email}, account_id={account_id}, category={category}")
     query = db.query(Transaction).join(Account).filter(
         Account.user_id == current_user.id
     )
@@ -39,7 +42,7 @@ async def get_transactions(
         query = query.filter(Transaction.amount >= min_amount)
     
     transactions = query.order_by(Transaction.date.desc()).all()
-    
+    logger.info(f"Get transactions returned: {len(transactions)} records for user={current_user.email}")
     return {
         "transactions": [
             {
@@ -65,6 +68,7 @@ async def get_transactions_summary(
     db: Session = Depends(get_db)
 ):
     """Get monthly spending summary by category"""
+    logger.debug(f"Get transaction summary: user={current_user.email}, year={year}, month={month}")
     # Calculate date range for the month
     from calendar import monthrange
     start_date = datetime(year, month, 1)
@@ -83,7 +87,7 @@ async def get_transactions_summary(
     ).group_by(Transaction.category)
     
     results = query.all()
-    
+    logger.info(f"Transaction summary for {current_user.email}: {len(results)} categories")
     return {
         "summary": [
             {
@@ -106,6 +110,7 @@ async def get_expensive_transactions(
     db: Session = Depends(get_db)
 ):
     """Get transactions above threshold"""
+    logger.debug(f"Get expensive transactions: user={current_user.email}, threshold={threshold}, days={days}")
     start_date = datetime.now() - timedelta(days=days)
     
     query = db.query(Transaction).join(Account).filter(
@@ -115,7 +120,7 @@ async def get_expensive_transactions(
     ).order_by(Transaction.date.desc())
     
     transactions = query.all()
-    
+    logger.info(f"Expensive transactions for {current_user.email}: {len(transactions)} items")
     return {
         "transactions": [
             {

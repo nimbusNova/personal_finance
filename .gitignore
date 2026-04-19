@@ -32,6 +32,8 @@ env/
 *.sqlite3
 *.log
 .env
+.env.*
+!.env.example
 .pytest_cache/
 .coverage
 htmlcov/
@@ -41,6 +43,13 @@ api/data/
 api/data/pdfs/
 api/data/exports/
 api/backups/
+api/.env
+api/.env.*
+!api/.env.example
+
+# Next.js env files
+web/.env*
+!web/.env.example
 
 # Next.js / Bun / Node
 node_modules/
@@ -73,3 +82,6 @@ next-env.d.ts
 *.tmp
 *.bak
 *.cache
+
+# Runtime logs directory
+logs/

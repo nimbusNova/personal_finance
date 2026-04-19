@@ -1,9 +1,15 @@
 """Kimi (Moonshot AI) service for PDF extraction"""
 import json
-import time
+import logging
+import os
 from typing import Optional, Dict, Any
+
 import httpx
+from PyPDF2 import PdfReader
+
 from app.config import get_settings
+
+logger = logging.getLogger("api.kimi")
 
 # Kimi extraction prompts
 BROKERAGE_PROMPT = """
@@ -96,60 +102,88 @@ Return only valid JSON, no markdown formatting.
 
 class KimiService:
     """Service for interacting with Kimi (Moonshot AI) API"""
-    
+
     def __init__(self):
         settings = get_settings()
         self.api_key = settings.kimi_api_key
         self.base_url = settings.kimi_base_url
+        self.model = settings.kimi_model
+        logger.info(
+            f"KimiService initialized: base_url={self.base_url}, "
+            f"model={self.model}, key_set={'yes' if self.api_key else 'no'}"
+        )
         self.client = httpx.Client(
             base_url=self.base_url,
             headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=60.0  # Kimi can take time for large PDFs
+            timeout=120.0,
         )
-    
+
     def extract_from_pdf(self, file_path: str, doc_type_hint: Optional[str] = None) -> Dict[str, Any]:
         """
-        Extract structured data from a PDF using Kimi
-        
-        Args:
-            file_path: Path to PDF file
-            doc_type_hint: Optional hint ("brokerage", "credit_card", "bank")
-        
-        Returns:
-            Dict with extracted data and metadata
+        Extract structured data from a PDF using Kimi.
+        Tries file-upload + file_url reference first, then falls back to text extraction.
         """
-        # First, detect document type if not provided
         if not doc_type_hint:
             doc_type_hint = self._detect_doc_type(file_path)
-        
-        # Select appropriate prompt
+
+        system_prompt = self._select_prompt(doc_type_hint)
+
+        # Strategy 1: Upload file and reference by URL (Kimi-native)
+        try:
+            logger.info(f"Trying file-upload strategy for {file_path}")
+            file_obj = self._upload_file(file_path)
+            logger.info(f"File upload response: {json.dumps(file_obj, default=str)[:500]}")
+
+            result = self._extract_with_file_url(file_obj, system_prompt)
+            if result.get("success"):
+                logger.info("File-upload strategy succeeded")
+                return result
+            logger.warning(f"File-upload strategy failed: {result.get('error')}")
+        except Exception as exc:
+            logger.warning(f"File-upload strategy error: {exc}", exc_info=True)
+
+        # Strategy 2: Extract text from PDF and send as text message
+        try:
+            logger.info(f"Falling back to text-extraction strategy for {file_path}")
+            pdf_text = self._extract_pdf_text(file_path)
+            if pdf_text:
+                result = self._extract_with_text(pdf_text, system_prompt)
+                if result.get("success"):
+                    logger.info("Text-extraction strategy succeeded")
+                    return result
+                logger.warning(f"Text-extraction strategy failed: {result.get('error')}")
+            else:
+                logger.warning("No text could be extracted from PDF")
+        except Exception as exc:
+            logger.warning(f"Text-extraction strategy error: {exc}", exc_info=True)
+
+        return {
+            "success": False,
+            "error": "All extraction strategies failed. Check logs for details.",
+            "data": None,
+        }
+
+    def _select_prompt(self, doc_type_hint: str) -> str:
         if doc_type_hint == "brokerage":
-            system_prompt = BROKERAGE_PROMPT
+            return BROKERAGE_PROMPT
         elif doc_type_hint == "credit_card":
-            system_prompt = CREDIT_CARD_PROMPT
+            return CREDIT_CARD_PROMPT
         elif doc_type_hint == "bank":
-            system_prompt = BANK_PROMPT
-        else:
-            system_prompt = self._get_generic_prompt()
-        
-        # Read PDF file
-        with open(file_path, 'rb') as f:
-            pdf_content = f.read()
-        
-        # Upload file to Kimi
-        file_obj = self._upload_file(pdf_content, file_path)
-        
-        # Extract using Kimi
-        return self._extract_with_kimi(file_obj, system_prompt)
-    
+            return BANK_PROMPT
+        return self._get_generic_prompt()
+
     def _detect_doc_type(self, file_path: str) -> str:
-        """Auto-detect document type from first few pages"""
-        # For now, use a generic detection prompt
-        # In production, you might scan for keywords like "brokerage", "credit card", etc.
+        """Auto-detect document type from filename keywords"""
+        name = os.path.basename(file_path).lower()
+        if any(k in name for k in ("brokerage", "schwab", "fidelity", "vanguard", "td", "e*trade")):
+            return "brokerage"
+        if any(k in name for k in ("credit", "card", "chase", "amex", "visa", "mastercard")):
+            return "credit_card"
+        if any(k in name for k in ("bank", "checking", "savings", "deposit")):
+            return "bank"
         return "unknown"
-    
+
     def _get_generic_prompt(self) -> str:
-        """Generic extraction prompt when type is unknown"""
         return """
 Analyze this financial statement PDF and extract the following:
 
@@ -169,86 +203,151 @@ Return structured JSON with:
 
 Return only valid JSON.
 """
-    
-    def _upload_file(self, file_content: bytes, file_path: str) -> Dict[str, Any]:
+
+    def _upload_file(self, file_path: str) -> Dict[str, Any]:
         """Upload PDF to Kimi and get file object"""
-        import os
         filename = os.path.basename(file_path)
-        
-        files = {
-            'file': (filename, file_content, 'application/pdf')
-        }
-        
-        response = self.client.post(
-            "/files",
-            files=files
-        )
+        with open(file_path, 'rb') as f:
+            pdf_content = f.read()
+
+        files = {'file': (filename, pdf_content, 'application/pdf')}
+        response = self.client.post("/files", files=files)
         response.raise_for_status()
         return response.json()
-    
-    def _extract_with_kimi(self, file_obj: Dict[str, Any], system_prompt: str) -> Dict[str, Any]:
-        """Extract data using Kimi chat completion"""
-        # Create chat completion with file reference
-        response = self.client.post(
-            "/chat/completions",
-            json={
-                "model": "kimi-latest",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "file",
-                                "file_url": {
-                                    "url": file_obj.get("url")
-                                }
-                            },
-                            {
-                                "type": "text",
-                                "text": "Extract all financial data from this statement and return as JSON."
-                            }
-                        ]
-                    }
-                ],
-                "temperature": 0.1,  # Low temperature for consistent extraction
-                "max_tokens": 4000
+
+    def _extract_with_file_url(self, file_obj: Dict[str, Any], system_prompt: str) -> Dict[str, Any]:
+        """Extract using Kimi chat completion with file URL reference"""
+        if isinstance(file_obj, str):
+            logger.warning(f"File upload returned string instead of dict: {file_obj[:200]}")
+            return {"success": False, "error": "Unexpected file upload response format"}
+
+        file_url = file_obj.get("url")
+        if not file_url and isinstance(file_obj.get("object"), dict):
+            file_url = file_obj["object"].get("url")
+        if not file_url:
+            logger.warning(f"No file_url in upload response: {json.dumps(file_obj, default=str)[:500]}")
+            return {"success": False, "error": "No file_url in upload response"}
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "file",
+                            "file_url": {"url": file_url},
+                        },
+                        {
+                            "type": "text",
+                            "text": "Extract all financial data from this statement and return as JSON.",
+                        },
+                    ],
+                },
+            ],
+            "max_tokens": 4000,
+        }
+        logger.debug(f"Chat completion payload (file_url): model={self.model}")
+        return self._call_chat_completion(payload)
+
+    def _extract_pdf_text(self, file_path: str) -> str:
+        """Extract raw text from a PDF using PyPDF2"""
+        reader = PdfReader(file_path)
+        text_parts = []
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text_parts.append(page_text)
+        return "\n".join(text_parts)
+
+    def _extract_with_text(self, pdf_text: str, system_prompt: str) -> Dict[str, Any]:
+        """Extract using Kimi chat completion with inline text"""
+        # Truncate if too long (most APIs have context limits)
+        max_chars = 30000
+        if len(pdf_text) > max_chars:
+            pdf_text = pdf_text[:max_chars] + "\n...[truncated]"
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Below is the text content of a financial statement PDF. "
+                        f"Extract all financial data and return as JSON.\n\n"
+                        f"--- PDF TEXT START ---\n{pdf_text}\n--- PDF TEXT END ---"
+                    ),
+                },
+            ],
+            "max_tokens": 4000,
+        }
+        logger.debug(f"Chat completion payload (text): model={self.model}, text_len={len(pdf_text)}")
+        return self._call_chat_completion(payload)
+
+    def _call_chat_completion(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Call the chat completions endpoint and parse the response"""
+        try:
+            response = self.client.post("/chat/completions", json=payload)
+            logger.debug(f"Chat completion status: {response.status_code}")
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                f"Chat completion HTTP error: {exc.response.status_code} "
+                f"for URL {exc.request.url}"
+            )
+            try:
+                err_body = exc.response.json()
+                logger.error(f"Error response body: {json.dumps(err_body, default=str)[:1000]}")
+            except Exception:
+                logger.error(f"Error response text: {exc.response.text[:1000]}")
+            return {
+                "success": False,
+                "error": f"HTTP {exc.response.status_code}: {exc.response.text[:500]}",
             }
-        )
-        response.raise_for_status()
-        
-        result = response.json()
-        content = result["choices"][0]["message"]["content"]
-        
+        except Exception as exc:
+            logger.error(f"Chat completion request failed: {exc}", exc_info=True)
+            return {"success": False, "error": str(exc)}
+
+        try:
+            result = response.json()
+        except json.JSONDecodeError as exc:
+            logger.error(f"Failed to decode JSON response: {exc}")
+            return {"success": False, "error": f"Invalid JSON response: {exc}"}
+
+        try:
+            content = result["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as exc:
+            logger.error(f"Unexpected response structure: {json.dumps(result, default=str)[:1000]}")
+            return {"success": False, "error": f"Unexpected response structure: {exc}"}
+
         # Parse JSON from content
         try:
-            # Clean up markdown formatting if present
             if "```json" in content:
                 content = content.split("```json")[1].split("```")[0]
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0]
-            
+
             extracted_data = json.loads(content.strip())
-            
+
             return {
                 "success": True,
                 "data": extracted_data,
                 "raw_response": content,
                 "confidence": extracted_data.get("extraction_confidence", 0.5),
                 "model": result.get("model", "unknown"),
-                "usage": result.get("usage", {})
+                "usage": result.get("usage", {}),
             }
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError as exc:
+            logger.error(f"Failed to parse JSON from response: {exc}")
             return {
                 "success": False,
-                "error": f"Failed to parse JSON: {str(e)}",
+                "error": f"Failed to parse JSON: {exc}",
                 "raw_response": content,
-                "data": None
+                "data": None,
             }
-    
+
     def close(self):
         """Close HTTP client"""
         self.client.close()

@@ -1,5 +1,6 @@
 """PDF service - local file storage"""
 import os
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -22,26 +23,48 @@ def ensure_data_directories():
     os.makedirs(settings.exports_path, exist_ok=True)
 
 
-def generate_pdf_path(file_content: bytes) -> tuple[str, str]:
+def sanitize_filename(filename: str) -> str:
+    """Sanitize a filename for safe filesystem storage."""
+    # Remove path traversal characters
+    filename = os.path.basename(filename)
+    # Replace unsafe characters with underscore
+    filename = re.sub(r'[^\w\s.-]', '_', filename)
+    # Collapse multiple underscores/spaces
+    filename = re.sub(r'[_\s]+', '_', filename).strip('_')
+    # Ensure it ends with .pdf
+    if not filename.lower().endswith('.pdf'):
+        filename += '.pdf'
+    return filename
+
+
+def generate_pdf_path(original_filename: str) -> tuple[str, str]:
     """
-    Generate storage path for a PDF file
+    Generate storage path for a PDF file using the original filename.
     Returns: (file_path, file_id)
     
-    Format: data/pdfs/{year}/{month}/{uuid}.pdf
+    Format: data/pdfs/{year}/{month}/{sanitized_filename}
+    If a file with the same name exists, appends _{n} before .pdf.
     """
     now = datetime.now()
     year = now.strftime("%Y")
     month = now.strftime("%m")
     
-    file_id = str(uuid.uuid4())
     base_path = get_pdf_storage_path()
-    
-    # Create year/month directories
     dir_path = os.path.join(base_path, year, month)
     os.makedirs(dir_path, exist_ok=True)
     
-    file_path = os.path.join(dir_path, f"{file_id}.pdf")
+    sanitized = sanitize_filename(original_filename)
+    name_part = sanitized[:-4]  # Remove .pdf
     
+    # Handle collisions
+    file_path = os.path.join(dir_path, sanitized)
+    counter = 1
+    while os.path.exists(file_path):
+        collision_name = f"{name_part}_{counter}.pdf"
+        file_path = os.path.join(dir_path, collision_name)
+        counter += 1
+    
+    file_id = str(uuid.uuid4())
     return file_path, file_id
 
 

@@ -1,4 +1,5 @@
 """AI Suggestions router - SQLite edition"""
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from app.database.models import AISuggestion, LifeStageProfile
 from app.routers.auth import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger("api.suggestions")
 
 
 class SuggestionFeedback(BaseModel):
@@ -23,6 +25,7 @@ async def get_suggestions(
     db: Session = Depends(get_db)
 ):
     """Get AI suggestions"""
+    logger.debug(f"Get suggestions: user={current_user.email}, is_active={is_active}")
     query = db.query(AISuggestion).join(LifeStageProfile).filter(
         LifeStageProfile.user_id == current_user.id
     )
@@ -31,7 +34,7 @@ async def get_suggestions(
         query = query.filter(AISuggestion.is_active == is_active)
     
     suggestions = query.order_by(AISuggestion.created_at.desc()).all()
-    
+    logger.info(f"Get suggestions returned: {len(suggestions)} records for user={current_user.email}")
     return {
         "suggestions": [
             {
@@ -60,22 +63,23 @@ async def update_suggestion_feedback(
     db: Session = Depends(get_db)
 ):
     """Update suggestion with user feedback"""
-    # Verify ownership
+    logger.info(f"Update suggestion feedback: id={suggestion_id}, feedback={feedback.feedback}, user={current_user.email}")
     suggestion = db.query(AISuggestion).join(LifeStageProfile).filter(
         AISuggestion.id == suggestion_id,
         LifeStageProfile.user_id == current_user.id
     ).first()
     
     if not suggestion:
+        logger.warning(f"Suggestion not found: id={suggestion_id}, user={current_user.email}")
         raise HTTPException(status_code=404, detail="Suggestion not found")
     
-    # Update
     suggestion.user_feedback = feedback.feedback
     suggestion.user_note = feedback.note
     suggestion.is_active = feedback.feedback not in ["accept", "reject"]
     
     db.commit()
     db.refresh(suggestion)
+    logger.info(f"Suggestion updated: id={suggestion_id}, new_status={suggestion.user_feedback}, active={suggestion.is_active}")
     
     return {
         "suggestion": {

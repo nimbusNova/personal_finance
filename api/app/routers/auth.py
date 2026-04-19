@@ -1,4 +1,5 @@
 """Authentication router"""
+import logging
 from datetime import timedelta, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,6 +14,7 @@ from app.database import get_db
 from app.database.models import User
 
 router = APIRouter()
+logger = logging.getLogger("api.auth")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -80,12 +82,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 @router.post("/register")
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """Register a new user (single-user app - typically used once)"""
-    # Check if user exists
+    logger.info(f"Register attempt: email={user.email}")
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
+        logger.warning(f"Register failed: email already registered: {user.email}")
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create user
     db_user = User(
         email=user.email,
         password_hash=get_password_hash(user.password)
@@ -93,16 +95,17 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+    logger.info(f"User created: id={db_user.id}, email={user.email}")
     return {"message": "User created", "user_id": db_user.id}
 
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login and get access token"""
-    # Find user
+    logger.info(f"Login attempt: email={form_data.username}")
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user:
+        logger.warning(f"Login failed: user not found: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -110,25 +113,26 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         )
     
     if not verify_password(form_data.password, user.password_hash):
+        logger.warning(f"Login failed: invalid password: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create token
     settings = get_settings()
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    
+    logger.info(f"Login success: email={user.email}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user info"""
+    logger.debug(f"Get me: user_id={current_user.id}, email={current_user.email}")
     return {
         "id": current_user.id,
         "email": current_user.email,

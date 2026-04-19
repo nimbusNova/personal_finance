@@ -1,14 +1,16 @@
 """Holdings router - SQLite edition"""
+import logging
 from fastapi import APIRouter, Depends
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.database.models import Holding, PortfolioSnapshot, Account
+from app.database.models import Holding, PortfolioSnapshot, Account, AccountBalance, Institution
 from app.routers.auth import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger("api.holdings")
 
 
 @router.get("/holdings")
@@ -19,6 +21,7 @@ async def get_holdings(
     db: Session = Depends(get_db)
 ):
     """Get holdings - filtered by snapshot or account"""
+    logger.debug(f"Get holdings: user={current_user.email}, snapshot_id={snapshot_id}, account_id={account_id}")
     query = db.query(Holding).join(PortfolioSnapshot).join(Account).filter(
         Account.user_id == current_user.id
     )
@@ -29,7 +32,7 @@ async def get_holdings(
         query = query.filter(PortfolioSnapshot.account_id == account_id)
     
     holdings = query.all()
-    
+    logger.info(f"Get holdings returned: {len(holdings)} records for user={current_user.email}")
     return {
         "holdings": [
             {
@@ -96,8 +99,9 @@ async def get_portfolio_summary(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get portfolio summary (total AUM, allocation, etc)"""
-    # Get latest snapshots per account
+    """Get portfolio summary (total AUM, allocation, etc) including bank and credit card balances."""
+    logger.debug(f"Get portfolio summary: user={current_user.email}")
+    # Get latest snapshots per account (brokerage only)
     latest_snapshots = db.query(
         PortfolioSnapshot.account_id,
         func.max(PortfolioSnapshot.statement_date).label('latest_date')
@@ -111,10 +115,10 @@ async def get_portfolio_summary(
         (PortfolioSnapshot.statement_date == latest_snapshots.c.latest_date)
     ).all()
     
-    # Calculate totals
-    total_value = sum(s.total_value for s in snapshots)
-    cash_balance = sum(s.cash_balance for s in snapshots)
-    invested_value = sum(s.invested_value for s in snapshots)
+    # Calculate brokerage totals
+    brokerage_total = sum(float(s.total_value or 0) for s in snapshots)
+    cash_balance = sum(float(s.cash_balance or 0) for s in snapshots)
+    invested_value = sum(float(s.invested_value or 0) for s in snapshots)
     
     # Get holdings for allocation
     snapshot_ids = [s.id for s in snapshots]
@@ -126,7 +130,7 @@ async def get_portfolio_summary(
         asset_class = h.asset_class or "unknown"
         if asset_class not in allocation:
             allocation[asset_class] = 0
-        allocation[asset_class] += h.market_value
+        allocation[asset_class] += float(h.market_value or 0)
     
     # Convert to percentages
     if invested_value > 0:
@@ -137,11 +141,65 @@ async def get_portfolio_summary(
     else:
         allocation_pct = {}
     
-    return {
+    # Get all user accounts with latest balances
+    accounts = (
+        db.query(Account, Institution)
+        .join(Institution, Account.institution_id == Institution.id)
+        .filter(Account.user_id == current_user.id)
+        .all()
+    )
+    
+    bank_total = 0.0
+    cc_debt = 0.0
+    account_summaries = []
+    
+    for account, institution in accounts:
+        latest_balance = (
+            db.query(AccountBalance)
+            .filter(AccountBalance.account_id == account.id)
+            .order_by(AccountBalance.statement_date.desc())
+            .first()
+        )
+        bal = float(latest_balance.balance) if latest_balance and latest_balance.balance is not None else None
+        
+        if bal is not None:
+            if account.account_type == "bank":
+                bank_total += bal
+            elif account.account_type == "credit_card":
+                cc_debt += bal
+        
+        account_summaries.append({
+            "id": account.id,
+            "name": account.name,
+            "type": account.account_type,
+            "institution": institution.name,
+            "balance": bal,
+            "statement_date": latest_balance.statement_date.isoformat() if latest_balance and latest_balance.statement_date else None,
+        })
+    
+    total_value = brokerage_total + bank_total - cc_debt
+    cash_balance = cash_balance + bank_total
+    account_count = len(accounts)
+    
+    latest_dates = [s.statement_date for s in snapshots]
+    for ab in db.query(AccountBalance).join(Account).filter(Account.user_id == current_user.id).all():
+        if ab.statement_date:
+            latest_dates.append(ab.statement_date)
+    
+    result = {
         "total_value": total_value,
         "cash_balance": cash_balance,
         "invested_value": invested_value,
-        "account_count": len(snapshots),
+        "credit_card_debt": cc_debt,
+        "brokerage_total": brokerage_total,
+        "bank_total": bank_total,
+        "account_count": account_count,
         "allocation": allocation_pct,
-        "latest_date": max(s.statement_date for s in snapshots) if snapshots else None
+        "latest_date": max(latest_dates) if latest_dates else None,
+        "accounts": account_summaries,
     }
+    logger.info(
+        f"Portfolio summary for {current_user.email}: "
+        f"total={total_value}, brokerage={brokerage_total}, bank={bank_total}, cc_debt={cc_debt}, accounts={account_count}"
+    )
+    return result

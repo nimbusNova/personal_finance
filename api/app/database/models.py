@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, Text, 
-    ForeignKey, JSON, Numeric, create_engine
+    ForeignKey, JSON, Numeric, create_engine, UniqueConstraint
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -55,6 +55,7 @@ class Account(Base):
     institution = relationship("Institution", back_populates="accounts")
     pdfs = relationship("PDF", back_populates="account")
     snapshots = relationship("PortfolioSnapshot", back_populates="account")
+    balances = relationship("AccountBalance", back_populates="account", order_by="AccountBalance.created_at.desc()")
 
 
 class LifeStageProfile(Base):
@@ -83,6 +84,7 @@ class PDF(Base):
     
     id = Column(Integer, primary_key=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)  # Can be null initially
+    original_filename = Column(String(500), nullable=True)
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer)
     page_count = Column(Integer)
@@ -90,6 +92,7 @@ class PDF(Base):
     
     # Extraction status
     extraction_status = Column(String(20), default="pending")  # pending, processing, completed, failed, manual_review
+    processing_step = Column(String(100))  # Current step description for UI
     extraction_confidence = Column(Float)
     extracted_data = Column(JSON)  # Raw Kimi output
     error_message = Column(Text)
@@ -138,8 +141,32 @@ class ManualCorrection(Base):
     pdf = relationship("PDF", back_populates="manual_corrections")
 
 
+class AccountBalance(Base):
+    __tablename__ = "account_balances"
+    
+    __table_args__ = (
+        UniqueConstraint('account_id', 'statement_date', name='uix_balance_account_date'),
+    )
+    
+    id = Column(Integer, primary_key=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    pdf_id = Column(Integer, ForeignKey("pdfs.id"))
+    statement_date = Column(DateTime)
+    balance = Column(Numeric(15, 2))
+    currency = Column(String(3), default="USD")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    account = relationship("Account", back_populates="balances")
+    pdf = relationship("PDF")
+
+
 class PortfolioSnapshot(Base):
     __tablename__ = "portfolio_snapshots"
+    
+    __table_args__ = (
+        UniqueConstraint('account_id', 'statement_date', name='uix_snapshot_account_date'),
+    )
     
     id = Column(Integer, primary_key=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
@@ -154,11 +181,15 @@ class PortfolioSnapshot(Base):
     # Relationships
     account = relationship("Account", back_populates="snapshots")
     pdf = relationship("PDF", back_populates="portfolio_snapshot")
-    holdings = relationship("Holding", back_populates="snapshot")
+    holdings = relationship("Holding", back_populates="snapshot", cascade="all, delete-orphan")
 
 
 class Holding(Base):
     __tablename__ = "holdings"
+    
+    __table_args__ = (
+        UniqueConstraint('snapshot_id', 'symbol', name='uix_holding_snapshot_symbol'),
+    )
     
     id = Column(Integer, primary_key=True)
     snapshot_id = Column(Integer, ForeignKey("portfolio_snapshots.id"), nullable=False)

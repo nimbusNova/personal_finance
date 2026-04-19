@@ -189,7 +189,8 @@ CREATE TABLE life_stage_profiles (
 CREATE TABLE pdfs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
-    file_path TEXT NOT NULL, -- Local path: data/pdfs/2024/01/uuid.pdf
+    original_filename TEXT, -- Original uploaded filename (e.g., "schwab_statement_mar_2024.pdf")
+    file_path TEXT NOT NULL, -- Local path: data/pdfs/2024/03/schwab_statement_mar_2024.pdf
     file_size INTEGER,
     page_count INTEGER,
     doc_type TEXT CHECK(doc_type IN ('brokerage', 'credit_card', 'bank')),
@@ -358,23 +359,11 @@ data/
 └── backups/         # SQLite backups
 ```
 
-## Key Differences from Supabase Edition
-
-| Feature | Supabase Edition | SQLite Edition |
-|---------|------------------|----------------|
-| Database | PostgreSQL (Supabase) | SQLite (local file) |
-| Storage | Supabase Storage bucket | Local filesystem |
-| Auth | Supabase Auth + JWT | Simple password + local JWT |
-| Hosting | Vercel + Railway/Render | Local only (for now) |
-| Multi-user | Easy | Possible but not priority |
-| Setup | Create accounts | Zero setup, just run |
-| Backup | Supabase handles it | Manual or automated export |
-
 ## Migration Path (Future)
 
-When ready for cloud deployment:
+When ready for cloud deployment (Phase 2):
 1. Export SQLite → PostgreSQL dump
-2. Move files to S3/Supabase Storage
+2. Move files to S3-compatible storage
 3. Update connection strings
 4. Deploy to Railway/Render
 

@@ -1,11 +1,12 @@
 # Implementation Plan - Personal Finance Portfolio Intelligence (SQLite Edition)
 
 ## Philosophy
-- **100% Self-Hosted**: SQLite database + local file storage
+- **Phase 1: Local-first by default**: SQLite database + local file storage
 - **Zero Accounts Required**: Run locally without cloud services
-- **Simple Deployment**: Just run the app, no Supabase/Railway setup
+- **Simple Deployment**: Just run the app, no external setup
 - **Kimi-native**: PDF extraction via Kimi API
 - **Single-user**: Simple password auth
+- **Phase 2 (Future)**: Optional cloud deployment (PostgreSQL, S3, etc.)
 
 ## Stack
 
@@ -363,7 +364,7 @@ cp data/personal_finance.db backups/personal_finance_$(date +%Y%m%d).db
 
 ## Phase 2 (Future): Optional Cloud
 
-When ready for public/cloud deployment:
+Planned for public/cloud deployment:
 
 1. **PostgreSQL migration**
    ```bash
@@ -371,7 +372,7 @@ When ready for public/cloud deployment:
    # Import to PostgreSQL
    ```
 
-2. **Cloud storage**: Move `data/pdfs/` to S3
+2. **Cloud storage**: Move `data/pdfs/` to S3-compatible storage
 
 3. **Deploy FastAPI**: Railway/Render
 

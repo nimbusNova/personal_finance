@@ -1,4 +1,7 @@
-"""SQLite database connection and initialization"""
+"""SQLite database connection and initialization (Phase 1).
+
+Phase 1 uses a local SQLite file. Future phases may support cloud databases.
+"""
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base

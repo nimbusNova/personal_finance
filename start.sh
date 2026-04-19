@@ -1,10 +1,26 @@
 #!/bin/bash
-# Start Personal Finance App with Bun
+# Start Personal Finance App with Bun — logs to console + files
 
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
+
+# Logging setup
+LOG_DIR="${PF_LOG_DIR:-$(pwd)/logs}"
+mkdir -p "$LOG_DIR"
+
+# Timestamped log filenames, e.g. 4_18_2026_14_30_00_backend.log
+TIMESTAMP=$(date +%-m_%-d_%Y_%H_%M_%S)
+BACKEND_LOG="$LOG_DIR/${TIMESTAMP}_backend.log"
+FRONTEND_LOG="$LOG_DIR/${TIMESTAMP}_frontend.log"
+
+echo "📝 Logs will be written to:"
+echo "   Backend:  $BACKEND_LOG"
+echo "   Frontend: $FRONTEND_LOG"
+
+# Export for backend file logger
+export PF_LOG_DIR="$LOG_DIR"
 
 echo "🚀 Starting Personal Finance App with Bun..."
 
@@ -40,17 +56,17 @@ if [ ! -f "api/data/personal_finance.db" ]; then
     cd ..
 fi
 
-# Start backend
+# Start backend with tee to both console and log file
 echo "🔧 Starting FastAPI backend on http://localhost:8000"
 cd api
 source venv/bin/activate 2>/dev/null || source venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > >(tee -a "$BACKEND_LOG") 2>&1 &
 BACKEND_PID=$!
 cd ..
 
 sleep 2
 
-# Start frontend with Bun
+# Start frontend with tee to both console and log file
 echo "🎨 Starting Next.js frontend (Bun) on http://localhost:3000"
 cd web
 
@@ -60,7 +76,7 @@ if [ ! -d "node_modules" ]; then
     bun install
 fi
 
-bun run dev &
+bun run dev > >(tee -a "$FRONTEND_LOG") 2>&1 &
 FRONTEND_PID=$!
 cd ..
 
@@ -70,7 +86,11 @@ echo "   Backend:  http://localhost:8000"
 echo "   Frontend: http://localhost:3000"
 echo "   API Docs: http://localhost:8000/docs"
 echo ""
+echo "📋 Log files:"
+echo "   Backend:  $BACKEND_LOG"
+echo "   Frontend: $FRONTEND_LOG"
+echo ""
 echo "Press Ctrl+C to stop"
 
-trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit" INT
+trap "echo ''; echo '🛑 Stopping services...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit" INT
 wait

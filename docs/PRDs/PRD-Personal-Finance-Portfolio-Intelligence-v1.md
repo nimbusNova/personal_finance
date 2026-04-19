@@ -3,7 +3,9 @@
 **Version:** 1.1  
 **Date:** 2026-04-17  
 **Status:** Draft  
-**Author:** AI-assisted / User-defined  
+**Author:** AI-assisted / User-defined
+
+> **Implementation Note (Phase 1):** The actual Phase 1 implementation diverges from this PRD's original architecture. The current codebase uses **SQLite** (local file) instead of Supabase PostgreSQL, and **local filesystem** instead of Supabase Storage. The PRD is preserved as the original product specification. See `README.md` and `docs/IMPLEMENTATION_PLAN.md` for the implemented stack.  
 
 ---
 
@@ -122,21 +124,21 @@ Single user (you). No multi-tenancy, no social features, no payment walls. Perso
 
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
-| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS | Best-in-class for Vercel. SSR for fast loads. |
+| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS | Best-in-class for SSR. |
 | **UI Components** | Tremor + Recharts | Analytics components + charting. |
-| **API** | FastAPI (Railway / Render) | Python-native. Handles Kimi orchestration + PDF pipeline cleanly. |
-| **Database + Storage** | **Supabase** | PostgreSQL for relational data + Supabase Storage bucket for PDFs. Single vendor, generous free tier. |
+| **API** | FastAPI | Python-native. Handles Kimi orchestration + PDF pipeline cleanly. |
+| **Database + Storage** | **SQLite + Local filesystem** *(Phase 1)* / **Supabase** *(Phase 2, planned)* | Phase 1: SQLite for relational data + local filesystem for PDFs. Phase 2: may migrate to PostgreSQL + cloud storage. |
 | **AI** | Kimi API (Moonshot AI) | Long context (200K+), file upload API, vision models for scanned PDFs, structured JSON output. |
 | **Auth** | Simple password + biometric on mobile (WebAuthn / device biometrics via PWA) | Single-user tool. |
 | **Scheduling** | GitHub Actions cron | Free, triggers FastAPI endpoints for monthly report generation. |
 
-### I.3.2 Phase I Data Flow
+### I.3.2 Phase I Data Flow (Implemented)
 
 ```
-User uploads PDF → Supabase Storage bucket
+User uploads PDF → Local filesystem (data/pdfs/)
         │
         ▼
-FastAPI worker fetches PDF → calls Kimi API
+FastAPI worker reads PDF → calls Kimi API
         │
         ▼
 Kimi returns structured JSON (holdings OR transactions)
@@ -146,7 +148,7 @@ Post-processing: normalize tickers, validate totals,
 flag low-confidence extractions
         │
         ▼
-Store in Supabase PostgreSQL
+Store in SQLite (data/personal_finance.db)
         │
         ▼
 Next.js dashboard reads from DB → renders charts + suggestions
@@ -156,8 +158,8 @@ Next.js dashboard reads from DB → renders charts + suggestions
 
 **No OCR libraries. No PyMuPDF. No Tesseract.** Kimi handles everything.
 
-1. **Upload** — User drags PDFs to Next.js UI → stored in Supabase Storage
-2. **Extract** — FastAPI sends PDF URL to Kimi API with prompt:
+1. **Upload** — User drags PDFs to Next.js UI → stored in local filesystem (`data/pdfs/`)
+2. **Extract** — FastAPI reads PDF file and sends to Kimi API with prompt:
    ```
    "Analyze this financial statement. Identify if it is a 
    brokerage statement, credit card statement, or bank statement. 
@@ -166,7 +168,7 @@ Next.js dashboard reads from DB → renders charts + suggestions
    ```
 3. **Validate** — FastAPI checks: sum of holdings ≈ total value, no negative quantities, dates within statement period
 4. **Review** — UI shows extracted JSON side-by-side with PDF for user confirmation
-5. **Store** — Confirmed data written to PostgreSQL
+5. **Store** — Confirmed data written to SQLite
 
 ### I.3.4 Kimi Extraction Schemas
 
@@ -394,7 +396,7 @@ Phase I Architecture
 | Diversity Model | Concentration-risk flags only |
 | Mobile | PWA primary; Capacitor optional in Phase II |
 | Data Ingestion | **PDF-first, Kimi-native** — no OCR libraries |
-| Storage | **Supabase** (PostgreSQL + Storage bucket) |
+| Storage | **Local filesystem** (Phase 1) — may migrate to cloud storage in Phase 2 |
 | Data Export | JSON primary; OFX/QFX/FDX deferred to Phase III |
 | Offline Mode | Not supported |
 | Tax Tracking | Phase III |
