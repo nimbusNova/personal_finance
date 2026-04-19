@@ -54,6 +54,8 @@ export default function AllocationChart({ data }: { data: AllocationData[] }) {
               borderRadius: '0.5rem',
               color: '#fff',
             }}
+            itemStyle={{ color: '#fff' }}
+            labelStyle={{ color: '#fff' }}
             formatter={(value: number) => [`${value.toFixed(2)}%`, 'Allocation']}
           />
           <Legend
