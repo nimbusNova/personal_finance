@@ -5,7 +5,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
 import { listKimiFiles, deleteKimiFile } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
-import { Trash2, Loader2, FileText, AlertCircle } from 'lucide-react';
+import { Trash2, Loader2, FileText, AlertCircle, Trash } from 'lucide-react';
 
 const log = createLogger('kimi-files-page');
 
@@ -24,6 +24,8 @@ export default function KimiFilesPage() {
   const [files, setFiles] = useState<KimiFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState('');
   const [error, setError] = useState('');
 
   const fetchFiles = async () => {
@@ -60,6 +62,37 @@ export default function KimiFilesPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!files.length) return;
+    if (!confirm(`Delete all ${files.length} files from Moonshot? This cannot be undone.`)) return;
+
+    setDeletingAll(true);
+    setError('');
+    let deleted = 0;
+    let failed = 0;
+
+    for (const f of files) {
+      setDeleteProgress(`Deleting ${deleted + 1} of ${files.length}...`);
+      try {
+        await deleteKimiFile(f.id);
+        deleted++;
+        log.info(`Deleted Kimi file ${f.id}`);
+      } catch (err: any) {
+        failed++;
+        log.error(`Failed to delete ${f.id}: ${err.message}`);
+      }
+      // Remove from UI immediately so user sees progress
+      setFiles((prev) => prev.filter((file) => file.id !== f.id));
+    }
+
+    setDeletingAll(false);
+    setDeleteProgress('');
+    if (failed > 0) {
+      setError(`Deleted ${deleted} files, ${failed} failed.`);
+    }
+    log.info(`Bulk delete complete: ${deleted} deleted, ${failed} failed`);
+  };
+
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -77,14 +110,33 @@ export default function KimiFilesPage() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-white">Kimi File Manager</h1>
-            <button
-              onClick={fetchFiles}
-              disabled={loading}
-              className="px-3 py-1.5 text-sm font-medium text-primary-300 hover:text-primary-200 hover:bg-primary-900/30 rounded transition disabled:opacity-40"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Refresh'}
-            </button>
+            <div className="flex items-center gap-2">
+              {files.length > 0 && (
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={deletingAll}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition disabled:opacity-40"
+                >
+                  {deletingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+                  Delete All ({files.length})
+                </button>
+              )}
+              <button
+                onClick={fetchFiles}
+                disabled={loading || deletingAll}
+                className="px-3 py-1.5 text-sm font-medium text-primary-300 hover:text-primary-200 hover:bg-primary-900/30 rounded transition disabled:opacity-40"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Refresh'}
+              </button>
+            </div>
           </div>
+
+          {deleteProgress && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-900/30 border border-blue-700 text-blue-400 text-sm flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {deleteProgress}
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-700 text-red-400 text-sm flex items-center gap-2">
@@ -93,7 +145,7 @@ export default function KimiFilesPage() {
             </div>
           )}
 
-          {loading && files.length === 0 ? (
+          {(loading || deletingAll) && files.length === 0 ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
