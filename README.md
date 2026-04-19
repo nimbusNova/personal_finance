@@ -2,17 +2,28 @@
 
 **100% Self-Hosted** | **Zero Accounts Required** | **Local-First**
 
-PDF-first portfolio tracking with AI-powered suggestions. Runs entirely on your machine.
+PDF-first portfolio tracking with AI-powered suggestions. Runs entirely on your machine with Bun + SQLite.
+
+## Requirements
+
+- **Bun** (Node.js alternative) - [Install](https://bun.sh/)
+- **Python 3.10+** - For FastAPI backend
 
 ## Quick Start
 
-### 1. Clone
+### 1. Install Bun
+```bash
+curl -fsSL https://bun.sh/install | bash
+# Restart your terminal after installation
+```
+
+### 2. Clone & Setup
 ```bash
 git clone github-nimbusnova:nimbusNova/personal_finance.git
 cd personal_finance
 ```
 
-### 2. Backend Setup
+### 3. Backend Setup
 ```bash
 cd api
 python3 -m venv venv
@@ -24,50 +35,42 @@ cp .env.example .env
 
 # Initialize SQLite database
 python -c "from app.database import init_db; init_db()"
+cd ..
 ```
 
-### 3. Frontend Setup (Choose npm or Bun)
-
-**Option A: npm (Node 18+)**
+### 4. Frontend Setup (Bun)
 ```bash
-cd web
-npm install
-```
-
-**Option B: Bun (Faster)** ⚡
-```bash
-# Install Bun if you don't have it:
-curl -fsSL https://bun.sh/install | bash
-
-# Then:
 cd web
 bun install
+cd ..
 ```
 
-### 4. Start the App
-
-**With npm:**
+### 5. Start the App
 ```bash
 ./start.sh
+# → Backend: http://localhost:8000
+# → Frontend: http://localhost:3000
 ```
 
-**With Bun (faster installs and dev server):** ⚡
-```bash
-./start-bun.sh
-```
+## Why Bun?
 
-### 5. Open http://localhost:3000
+| Feature | Bun vs npm |
+|---------|-----------|
+| Install speed | **10x faster** (~3s vs ~30s) |
+| Dev server | **Faster HMR** |
+| Runtime | **Native TypeScript support** |
+| All-in-one | Bundler, test runner, package manager |
 
 ## What's Different?
 
 | Feature | Original (Cloud) | This Edition (Local) |
 |---------|------------------|---------------------|
-| Database | Supabase PostgreSQL | SQLite (local file) |
-| Storage | Supabase Storage | Local filesystem |
-| Deployment | Vercel + Railway | Local only |
-| Accounts | Required | None needed |
-| Privacy | Data in cloud | Data stays on your machine |
-| Setup | 3 cloud accounts | Just run locally |
+| Database | Supabase PostgreSQL | **SQLite** (local file) |
+| Storage | Supabase Storage | **Local filesystem** |
+| Frontend | npm | **Bun** |
+| Deployment | Vercel + Railway | **Local only** |
+| Accounts | Required | **None needed** |
+| Privacy | Data in cloud | **Data stays on your machine** |
 
 ## Data Storage
 
@@ -84,23 +87,30 @@ api/data/
     └── 2024-04-18_export.json
 ```
 
-## npm vs Bun
+## Project Structure
 
-| Feature | npm | Bun |
-|---------|-----|-----|
-| Install speed | ~30s | ~3s |
-| Dev server | Fast | Faster |
-| Lockfile | package-lock.json | bun.lockb |
-| Compatibility | Standard | 99% compatible |
-
-Both work identically. Bun is significantly faster but optional.
+```
+personal_finance/
+├── api/                    # FastAPI backend
+│   ├── app/
+│   │   ├── database/       # SQLite models
+│   │   ├── services/       # PDF + Kimi services
+│   │   └── routers/        # API endpoints
+│   ├── data/              # Local storage (gitignored)
+│   └── requirements.txt
+├── web/                    # Next.js frontend (Bun)
+│   ├── app/               # App router
+│   ├── bun.lockb          # Bun lockfile
+│   └── package.json
+├── docs/                   # PRD, ERD, Implementation Plan
+└── start.sh               # Start script (uses Bun)
+```
 
 ## Usage
 
 ### Start the app
 ```bash
-./start.sh      # Uses npm
-./start-bun.sh  # Uses Bun (faster)
+./start.sh
 ```
 
 ### Export your data
@@ -115,40 +125,25 @@ python scripts/export_data.py --format json
 cp api/data/personal_finance.db backups/personal_finance_$(date +%Y%m%d).db
 ```
 
-## Project Structure
-
-```
-personal_finance/
-├── api/                    # FastAPI backend
-│   ├── app/
-│   │   ├── database/       # SQLite models
-│   │   ├── services/       # PDF + Kimi services
-│   │   └── routers/        # API endpoints
-│   ├── data/              # Local storage (gitignored)
-│   └── requirements.txt
-├── web/                    # Next.js frontend
-│   └── app/
-├── docs/                   # PRD, ERD, Implementation Plan
-├── start.sh               # Start with npm
-└── start-bun.sh           # Start with Bun (faster)
-```
-
 ## Documentation
 
 - `docs/PRD.md` - Product requirements
 - `docs/ERD.md` - SQLite database schema
-- `docs/IMPLEMENTATION_PLAN.md` - 10-week plan
+- `docs/IMPLEMENTATION_PLAN.md` - 10-week implementation plan
 
-## Roadmap
+## Phase 1: MVP (10 weeks)
 
-**Phase 1 (10 weeks):** Local MVP
-- PDF upload & Kimi extraction
-- Portfolio dashboard
-- Spending analysis
-- AI suggestions
-- Monthly reports (local cron)
+| Week | Milestone |
+|------|-----------|
+| 1-2 | SQLite + local file storage + Bun setup |
+| 3-4 | PDF upload + Kimi extraction |
+| 5-6 | Dashboard + holdings view |
+| 7-8 | Historical data + time series |
+| 9-10 | AI suggestions + monthly reports |
 
-**Phase 2 (Future):** Optional cloud
+## Phase 2 (Future): Optional Cloud
+
+When ready for public/cloud deployment:
 - PostgreSQL migration
 - S3 storage
 - Vercel + Railway deploy
