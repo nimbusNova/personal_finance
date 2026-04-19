@@ -54,8 +54,8 @@ export default function UploadsTable({
           <tr>
             <th className="px-4 py-3">Filename</th>
             <th className="px-4 py-3">State</th>
-            <th className="px-4 py-3">Date</th>
-            {onRetry && <th className="px-4 py-3"></th>}
+            <th className="px-4 py-3 w-24 whitespace-nowrap">Upload Date</th>
+            {onRetry && <th className="px-4 py-3 w-16"></th>}
           </tr>
         </thead>
         <tbody>
@@ -68,14 +68,14 @@ export default function UploadsTable({
                     className="flex items-center gap-2 text-white hover:text-primary-300 transition"
                   >
                     <FileText className="w-4 h-4 text-gray-500" />
-                    <span className="truncate max-w-[200px]" title={u.original_filename || `Upload #${u.id}`}>
+                    <span title={u.original_filename || `Upload #${u.id}`}>
                       {u.original_filename || `Upload #${u.id}`}
                     </span>
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 text-white">
                     <FileText className="w-4 h-4 text-gray-500" />
-                    <span className="truncate max-w-[200px]" title={u.original_filename || `Upload #${u.id}`}>
+                    <span title={u.original_filename || `Upload #${u.id}`}>
                       {u.original_filename || `Upload #${u.id}`}
                     </span>
                   </div>
@@ -84,7 +84,7 @@ export default function UploadsTable({
               <td className="px-4 py-3">
                 <StepDisplay status={u.extraction_status} step={u.processing_step} />
               </td>
-              <td className="px-4 py-3 text-gray-400">
+              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                 {new Date(u.created_at).toLocaleDateString()}
               </td>
               {onRetry && (
