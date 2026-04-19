@@ -71,7 +71,7 @@ export default function TransactionsPage() {
       try {
         const [summaryRes, expensiveRes] = await Promise.all([
           getTransactionSummary(year, month).catch(() => ({ summary: [] })),
-          getExpensiveTransactions().catch(() => ({ transactions: [] })),
+          getExpensiveTransactions(200, 30, year, month).catch(() => ({ transactions: [] })),
         ]);
         setSummary(Array.isArray(summaryRes?.summary) ? summaryRes.summary : []);
         setExpensive(Array.isArray(expensiveRes?.transactions) ? expensiveRes.transactions : []);

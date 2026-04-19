@@ -122,20 +122,30 @@ async def get_transactions_summary(
 async def get_expensive_transactions(
     threshold: float = 200.0,
     days: int = 30,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get transactions above threshold"""
-    logger.debug(f"Get expensive transactions: user={current_user.email}, threshold={threshold}, days={days}")
-    start_date = datetime.now() - timedelta(days=days)
+    """Get transactions above threshold. If year+month provided, filter to that month."""
+    logger.debug(f"Get expensive transactions: user={current_user.email}, threshold={threshold}, year={year}, month={month}")
     
     query = db.query(Transaction).join(Account).filter(
         Account.user_id == current_user.id,
         Transaction.amount >= threshold,
-        Transaction.date >= start_date
-    ).order_by(Transaction.date.desc())
+    )
     
-    transactions = query.all()
+    if year and month:
+        from calendar import monthrange
+        start_date = datetime(year, month, 1)
+        end_day = monthrange(year, month)[1]
+        end_date = datetime(year, month, end_day, 23, 59, 59)
+        query = query.filter(Transaction.date >= start_date, Transaction.date <= end_date)
+    else:
+        start_date = datetime.now() - timedelta(days=days)
+        query = query.filter(Transaction.date >= start_date)
+    
+    transactions = query.order_by(Transaction.date.desc()).all()
     logger.info(f"Expensive transactions for {current_user.email}: {len(transactions)} items")
     return {
         "transactions": [
@@ -149,7 +159,6 @@ async def get_expensive_transactions(
             for t in transactions
         ],
         "threshold": threshold,
-        "days": days,
         "count": len(transactions)
     }
 

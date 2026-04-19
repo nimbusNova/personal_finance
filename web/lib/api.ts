@@ -108,8 +108,11 @@ export async function getTransactionSummary(year: number, month: number) {
   return fetchApi(`/api/v1/transactions/summary?year=${year}&month=${month}`);
 }
 
-export async function getExpensiveTransactions(threshold = 200, days = 30) {
-  return fetchApi(`/api/v1/transactions/expensive?threshold=${threshold}&days=${days}`);
+export async function getExpensiveTransactions(threshold = 200, days = 30, year?: number, month?: number) {
+  let url = `/api/v1/transactions/expensive?threshold=${threshold}&days=${days}`;
+  if (year !== undefined) url += `&year=${year}`;
+  if (month !== undefined) url += `&month=${month}`;
+  return fetchApi(url);
 }
 
 export async function getAccounts() {
