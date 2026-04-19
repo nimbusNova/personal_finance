@@ -475,6 +475,7 @@ class TestDataExportWorkflow:
         db_session.commit()
         
         # Simulate export (would be actual export function in production)
+        # Convert Decimal values to float for JSON serialization
         export_data = {
             "user": {"email": user.email},
             "accounts": [
@@ -484,12 +485,12 @@ class TestDataExportWorkflow:
                     "snapshots": [
                         {
                             "date": snapshot.statement_date.isoformat(),
-                            "total_value": snapshot.total_value,
+                            "total_value": float(snapshot.total_value) if snapshot.total_value else 0,
                             "holdings": [
                                 {
                                     "symbol": holding.symbol,
-                                    "quantity": holding.quantity,
-                                    "market_value": holding.market_value
+                                    "quantity": float(holding.quantity) if holding.quantity else 0,
+                                    "market_value": float(holding.market_value) if holding.market_value else 0
                                 }
                             ]
                         }
