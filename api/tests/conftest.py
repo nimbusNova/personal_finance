@@ -153,8 +153,21 @@ def sample_credit_card_data():
     }
 
 
-@pytest.fixture
-def mock_kimi_response():
+@pytest.fixture(scope="function")
+def test_user(db_session):
+    """Create a test user for tests that need one"""
+    from app.database.models import User
+    from app.routers.auth import get_password_hash
+    
+    user = User(
+        email="test@example.com",
+        hashed_password=get_password_hash("testpassword123"),
+        full_name="Test User"
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
     """Mock response from Kimi API"""
     return {
         "success": True,
