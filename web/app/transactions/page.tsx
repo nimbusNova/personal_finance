@@ -334,31 +334,23 @@ export default function TransactionsPage() {
                               </td>
                               <td className="px-4 py-3">
                                 {editingTx === t.id ? (
-                                  <div className="flex items-center gap-2">
-                                    <select
-                                      value={editCategory}
-                                      onChange={(e) => setEditCategory(e.target.value)}
-                                      className="bg-gray-700 border border-gray-600 text-white text-xs rounded px-2 py-1 outline-none"
-                                      autoFocus
-                                    >
-                                      <option value="">Select...</option>
-                                      {COMMON_CATEGORIES.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
-                                      ))}
-                                    </select>
-                                    <button
-                                      onClick={() => handleSaveCategory(t.id)}
-                                      className="text-xs text-green-400 hover:text-green-300"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => { setEditingTx(null); setEditCategory(''); }}
-                                      className="text-xs text-gray-400 hover:text-white"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
+                                  <select
+                                    value={editCategory}
+                                    onChange={async (e) => {
+                                      const newCat = e.target.value;
+                                      if (!newCat) return;
+                                      setEditCategory(newCat);
+                                      await handleSaveCategory(t.id);
+                                    }}
+                                    onBlur={() => setEditingTx(null)}
+                                    className="bg-gray-700 border border-gray-600 text-white text-xs rounded px-2 py-1 outline-none"
+                                    autoFocus
+                                  >
+                                    <option value="">Select...</option>
+                                    {COMMON_CATEGORIES.map((c) => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
                                 ) : (
                                   <button
                                     onClick={() => {
