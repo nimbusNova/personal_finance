@@ -106,23 +106,65 @@ personal_finance/
 └── start.sh               # Start script (uses Bun)
 ```
 
-## Usage
+## Testing
 
-### Start the app
+### Run all tests with coverage
+```bash
+./test.sh
+```
+
+### Run quick unit tests only
+```bash
+./test-quick.sh
+```
+
+### Run specific test categories
+```bash
+cd api
+source venv/bin/activate
+
+# Unit tests only (fast)
+pytest -m unit
+
+# Integration tests
+pytest -m integration
+
+# With coverage report
+pytest --cov=app --cov-report=html
+# Open api/htmlcov/index.html in browser
+```
+
+### Test structure
+```
+api/tests/
+├── conftest.py           # Fixtures and config
+├── test_models.py        # Database model tests
+├── test_pdf_service.py   # PDF service tests
+├── test_kimi_service.py  # Kimi API tests
+└── test_api.py           # API endpoint tests
+```
+
+---
+
+## Development Workflow
+
+### 1. Start the app
 ```bash
 ./start.sh
 ```
 
-### Export your data
+### 2. Run tests while developing
 ```bash
-cd api
-python scripts/export_data.py --format json
-# → data/exports/2024-04-18_personal_finance.json
+# Terminal 1: Keep app running
+./start.sh
+
+# Terminal 2: Run tests on changes
+./test-quick.sh
 ```
 
-### Backup database
+### 3. Check coverage before committing
 ```bash
-cp api/data/personal_finance.db backups/personal_finance_$(date +%Y%m%d).db
+./test.sh
 ```
 
 ## Documentation
