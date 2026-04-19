@@ -178,3 +178,13 @@ export async function deleteUpload(pdfId: number) {
     method: 'DELETE',
   });
 }
+
+export async function listKimiFiles() {
+  return fetchApi('/api/v1/kimi-files');
+}
+
+export async function deleteKimiFile(fileId: string) {
+  return fetchApi(`/api/v1/kimi-files/${fileId}`, {
+    method: 'DELETE',
+  });
+}

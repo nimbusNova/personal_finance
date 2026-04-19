@@ -19,6 +19,7 @@ from app.services.pdf_service import (
     get_storage_stats
 )
 from app.services.extraction_service import process_pdf_extraction
+from app.logging_config import get_upload_logger
 
 router = APIRouter()
 logger = logging.getLogger("api.upload")
@@ -85,15 +86,19 @@ async def upload_pdf(
         db.add(pdf)
         db.commit()
         db.refresh(pdf)
-        logger.info(f"Upload complete: pdf_id={pdf.id}, path={file_path}, user={current_user.email}")
+
+        upload_id = pdf.id
+        upload_logger = get_upload_logger(logger, upload_id)
+        upload_logger.info(f"Upload complete: path={file_path}, user={current_user.email}")
         
         # Trigger background extraction
         if background_tasks is not None:
             background_tasks.add_task(process_pdf_extraction, pdf.id, file_path, current_user.id)
-            logger.info(f"Background extraction queued for PDF {pdf.id}")
+            upload_logger.info("Background extraction queued")
         
         return {
             "message": "Upload successful",
+            "upload_id": upload_id,
             "pdf_id": pdf.id,
             "original_filename": pdf.original_filename,
             "file_path": file_path,
@@ -203,7 +208,8 @@ async def retry_extraction(
     db: Session = Depends(get_db)
 ):
     """Retry extraction for a PDF"""
-    logger.info(f"Retry extraction requested: pdf_id={pdf_id}, user={current_user.email}")
+    upload_logger = get_upload_logger(logger, pdf_id)
+    upload_logger.info(f"Retry extraction requested: user={current_user.email}")
     pdf = db.query(PDF).outerjoin(Account).filter(
         PDF.id == pdf_id,
         or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
@@ -213,7 +219,7 @@ async def retry_extraction(
         raise HTTPException(status_code=404, detail="PDF not found")
     
     if not os.path.exists(pdf.file_path):
-        logger.error(f"Retry failed: file not found on disk: {pdf.file_path}")
+        upload_logger.error(f"Retry failed: file not found on disk: {pdf.file_path}")
         raise HTTPException(status_code=400, detail="PDF file no longer exists on disk")
     
     pdf.extraction_status = "pending"
@@ -225,7 +231,7 @@ async def retry_extraction(
     
     if background_tasks is not None:
         background_tasks.add_task(process_pdf_extraction, pdf.id, pdf.file_path, current_user.id)
-        logger.info(f"Background retry queued for PDF {pdf.id}")
+        upload_logger.info("Background retry queued")
     
     return {
         "message": "Extraction retry queued",
@@ -271,7 +277,8 @@ async def update_extracted_data(
     db: Session = Depends(get_db)
 ):
     """Update extracted_data JSON for a PDF (manual correction)"""
-    logger.info(f"Update extracted data: pdf_id={pdf_id}, user={current_user.email}")
+    upload_logger = get_upload_logger(logger, pdf_id)
+    upload_logger.info(f"Update extracted data: user={current_user.email}")
     pdf = db.query(PDF).outerjoin(Account).filter(
         PDF.id == pdf_id,
         or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
@@ -283,7 +290,7 @@ async def update_extracted_data(
     pdf.extracted_data = update.extracted_data
     db.commit()
     db.refresh(pdf)
-    logger.info(f"Extracted data updated for PDF {pdf_id}")
+    upload_logger.info("Extracted data updated")
 
     return {
         "id": pdf.id,
@@ -300,7 +307,8 @@ async def delete_upload(
     db: Session = Depends(get_db)
 ):
     """Delete a PDF upload, its file on disk, and all derived data."""
-    logger.info(f"Delete upload requested: pdf_id={pdf_id}, user={current_user.email}")
+    upload_logger = get_upload_logger(logger, pdf_id)
+    upload_logger.info(f"Delete upload requested: user={current_user.email}")
     pdf = db.query(PDF).outerjoin(Account).filter(
         PDF.id == pdf_id,
         or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
@@ -320,35 +328,35 @@ async def delete_upload(
     # 2. Transactions
     txn_count = db.query(Transaction).filter(Transaction.pdf_id == pdf_id).delete(synchronize_session=False)
     if txn_count:
-        logger.info(f"Deleted {txn_count} transactions for PDF {pdf_id}")
+        upload_logger.info(f"Deleted {txn_count} transactions")
 
     # 3. AccountBalances
     bal_count = db.query(AccountBalance).filter(AccountBalance.pdf_id == pdf_id).delete(synchronize_session=False)
     if bal_count:
-        logger.info(f"Deleted {bal_count} account balances for PDF {pdf_id}")
+        upload_logger.info(f"Deleted {bal_count} account balances")
 
     # 4. ExtractionJobs
     job_count = db.query(ExtractionJob).filter(ExtractionJob.pdf_id == pdf_id).delete(synchronize_session=False)
     if job_count:
-        logger.info(f"Deleted {job_count} extraction jobs for PDF {pdf_id}")
+        upload_logger.info(f"Deleted {job_count} extraction jobs")
 
     # 5. ManualCorrections
     mc_count = db.query(ManualCorrection).filter(ManualCorrection.pdf_id == pdf_id).delete(synchronize_session=False)
     if mc_count:
-        logger.info(f"Deleted {mc_count} manual corrections for PDF {pdf_id}")
+        upload_logger.info(f"Deleted {mc_count} manual corrections")
 
     # 6. Delete file from disk
     if pdf.file_path and os.path.exists(pdf.file_path):
         try:
             os.remove(pdf.file_path)
-            logger.info(f"Deleted file from disk: {pdf.file_path}")
+            upload_logger.info(f"Deleted file from disk: {pdf.file_path}")
         except Exception as e:
-            logger.warning(f"Failed to delete file from disk: {pdf.file_path}: {e}")
+            upload_logger.warning(f"Failed to delete file from disk: {pdf.file_path}: {e}")
 
     # 7. Delete PDF record
     db.delete(pdf)
     db.commit()
-    logger.info(f"Deleted PDF record {pdf_id}")
+    upload_logger.info("Deleted PDF record")
 
     return {"message": "Upload deleted", "pdf_id": pdf_id}
 

@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, upload, health, holdings, transactions, suggestions, accounts
+from app.routers import auth, upload, health, holdings, transactions, suggestions, accounts, kimi_files
 from app.database.connection import init_db
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware
@@ -41,6 +41,7 @@ app.include_router(holdings.router, prefix="/api/v1", tags=["holdings"])
 app.include_router(transactions.router, prefix="/api/v1", tags=["transactions"])
 app.include_router(suggestions.router, prefix="/api/v1", tags=["suggestions"])
 app.include_router(accounts.router, prefix="/api/v1", tags=["accounts"])
+app.include_router(kimi_files.router, prefix="/api/v1", tags=["kimi-files"])
 
 @app.on_event("startup")
 async def startup_event():

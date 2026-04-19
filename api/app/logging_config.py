@@ -8,6 +8,21 @@ LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
+class UploadLoggerAdapter(logging.LoggerAdapter):
+    """Logger adapter that prepends [upload_id=X] to every message for traceability."""
+
+    def process(self, msg, kwargs):
+        upload_id = self.extra.get("upload_id")
+        if upload_id is not None:
+            msg = f"[upload_id={upload_id}] {msg}"
+        return msg, kwargs
+
+
+def get_upload_logger(base_logger: logging.Logger, upload_id: int | None) -> logging.LoggerAdapter:
+    """Wrap a logger with upload_id context for debugging."""
+    return UploadLoggerAdapter(base_logger, {"upload_id": upload_id})
+
+
 def setup_logging(log_dir: str | None = None, log_to_file: bool = True):
     """Configure root logger with console and optional file handlers."""
     root = logging.getLogger()

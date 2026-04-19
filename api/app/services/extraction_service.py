@@ -10,6 +10,7 @@ from app.database.models import (
     PortfolioSnapshot, Holding, Transaction, User, AccountBalance
 )
 from app.services.kimi_service import get_kimi_service
+from app.logging_config import get_upload_logger
 
 logger = logging.getLogger("api.extraction")
 
@@ -29,11 +30,11 @@ def _get_db():
         raise
 
 
-def _set_step(db, pdf: PDF, step: str):
+def _set_step(db, pdf: PDF, step: str, upload_logger):
     """Update the processing step on the PDF record."""
     pdf.processing_step = step
     db.commit()
-    logger.info(f"PDF {pdf.id} step: {step}")
+    upload_logger.info(f"Step: {step}")
 
 
 def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
@@ -43,16 +44,17 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
     """
     db = _get_db()
     job = None
+    upload_logger = get_upload_logger(logger, pdf_id)
     try:
         # Fetch PDF and create ExtractionJob
         pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
         if not pdf:
-            logger.error(f"Extraction aborted: PDF {pdf_id} not found")
+            upload_logger.error("Extraction aborted: PDF not found")
             return
 
         pdf.extraction_status = "processing"
         pdf.processed_at = datetime.utcnow()
-        _set_step(db, pdf, "Uploading file to Kimi")
+        _set_step(db, pdf, "Uploading file to Kimi", upload_logger)
 
         job = ExtractionJob(
             pdf_id=pdf_id,
@@ -63,22 +65,22 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
         db.add(job)
         db.commit()
 
-        logger.info(f"Starting extraction for PDF {pdf_id}: {file_path}")
+        upload_logger.info(f"Starting 3-stage extraction pipeline: file={file_path}")
 
-        # Call Kimi
+        # Call Kimi (3-stage pipeline internally)
         try:
-            _set_step(db, pdf, "Extracting data with AI")
+            _set_step(db, pdf, "Stage 1/3: Classifying document", upload_logger)
             service = get_kimi_service()
-            result = service.extract_from_pdf(file_path)
+            result = service.extract_from_pdf(file_path, upload_id=pdf_id)
         except Exception as exc:
-            logger.error(f"Kimi extraction failed for PDF {pdf_id}: {exc}", exc_info=True)
-            _mark_failed(db, pdf, job, f"Kimi extraction error: {exc}")
+            upload_logger.error(f"Kimi extraction failed: {exc}", exc_info=True)
+            _mark_failed(db, pdf, job, f"Kimi extraction error: {exc}", upload_logger)
             return
 
         if not result.get("success"):
             error_msg = result.get("error", "Unknown extraction error")
-            logger.error(f"Kimi returned failure for PDF {pdf_id}: {error_msg}")
-            _mark_failed(db, pdf, job, error_msg)
+            upload_logger.error(f"Kimi returned failure: {error_msg}")
+            _mark_failed(db, pdf, job, error_msg, upload_logger)
             return
 
         extracted = result.get("data", {})
@@ -90,29 +92,29 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
         pdf.doc_type = extracted.get("doc_type") or pdf.doc_type
         db.commit()
 
-        logger.info(f"Extraction raw data received for PDF {pdf_id}: doc_type={pdf.doc_type}, confidence={confidence}")
+        upload_logger.info(f"Extraction raw data received: doc_type={pdf.doc_type}, confidence={confidence}")
 
         # Validate
-        _set_step(db, pdf, "Validating extracted data")
+        _set_step(db, pdf, "Validating extracted data", upload_logger)
         validation_errors = _validate_extraction(extracted, pdf.doc_type)
         if validation_errors:
-            logger.warning(f"Validation failed for PDF {pdf_id}: {validation_errors}")
-            _mark_failed(db, pdf, job, f"Validation failed: {'; '.join(validation_errors)}")
+            upload_logger.warning(f"Validation failed: {validation_errors}")
+            _mark_failed(db, pdf, job, f"Validation failed: {'; '.join(validation_errors)}", upload_logger)
             return
 
         # Normalize and persist
-        _set_step(db, pdf, "Saving to database")
+        _set_step(db, pdf, "Saving to database", upload_logger)
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            logger.error(f"User {user_id} not found during extraction of PDF {pdf_id}")
-            _mark_failed(db, pdf, job, "User not found")
+            upload_logger.error(f"User {user_id} not found during extraction")
+            _mark_failed(db, pdf, job, "User not found", upload_logger)
             return
 
         try:
-            _persist_extraction(db, pdf, extracted, user_id)
+            _persist_extraction(db, pdf, extracted, user_id, upload_logger)
         except Exception as exc:
-            logger.error(f"Data persistence failed for PDF {pdf_id}: {exc}", exc_info=True)
-            _mark_failed(db, pdf, job, f"Persistence error: {exc}")
+            upload_logger.error(f"Data persistence failed: {exc}", exc_info=True)
+            _mark_failed(db, pdf, job, f"Persistence error: {exc}", upload_logger)
             return
 
         # Success
@@ -124,10 +126,10 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
         job.completed_at = datetime.utcnow()
         db.commit()
 
-        logger.info(f"Extraction completed successfully for PDF {pdf_id}")
+        upload_logger.info("Extraction completed successfully")
 
     except Exception as exc:
-        logger.error(f"Unexpected error during extraction of PDF {pdf_id}: {exc}", exc_info=True)
+        upload_logger.error(f"Unexpected error during extraction: {exc}", exc_info=True)
         try:
             if pdf:
                 pdf.extraction_status = "failed"
@@ -145,7 +147,7 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
         db.close()
 
 
-def _mark_failed(db, pdf, job, message: str):
+def _mark_failed(db, pdf, job, message: str, upload_logger):
     """Mark PDF and job as failed."""
     pdf.extraction_status = "failed"
     pdf.processing_step = f"Failed: {message[:200]}"
@@ -156,6 +158,7 @@ def _mark_failed(db, pdf, job, message: str):
         job.error_details = {"error": message}
         job.completed_at = datetime.utcnow()
         db.commit()
+    upload_logger.info(f"Marked as failed: {message[:200]}")
 
 
 def _validate_extraction(data: Dict[str, Any], doc_type: Optional[str]) -> list:
@@ -212,7 +215,7 @@ def _validate_extraction(data: Dict[str, Any], doc_type: Optional[str]) -> list:
     return errors
 
 
-def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int):
+def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload_logger):
     """Persist validated extraction data into relational tables."""
     doc_type = data.get("doc_type", pdf.doc_type)
     institution_name = data.get("institution", "Unknown")
@@ -228,7 +231,7 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int):
         db.add(institution)
         db.commit()
         db.refresh(institution)
-        logger.info(f"Created institution: {institution_name} (id={institution.id})")
+        upload_logger.info(f"Created institution: {institution_name} (id={institution.id})")
 
     # Find or create Account
     account = db.query(Account).filter(
@@ -247,7 +250,7 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int):
         db.add(account)
         db.commit()
         db.refresh(account)
-        logger.info(f"Created account: {account_type} (id={account.id})")
+        upload_logger.info(f"Created account: {account_type} (id={account.id})")
 
     # Link PDF to account if not already linked
     if pdf.account_id is None:
@@ -257,25 +260,25 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int):
     # Upsert: delete old data for same account + statement_date before inserting new
     statement_date = _parse_date(data.get("statement_date"))
     if statement_date:
-        _clear_existing_data(db, account, doc_type, statement_date, pdf.id)
+        _clear_existing_data(db, account, doc_type, statement_date, pdf.id, upload_logger)
 
     if doc_type == "brokerage":
-        _persist_brokerage(db, pdf, account, data)
+        _persist_brokerage(db, pdf, account, data, upload_logger)
     elif doc_type == "credit_card":
-        _persist_credit_card(db, pdf, account, data)
+        _persist_credit_card(db, pdf, account, data, upload_logger)
     elif doc_type == "bank":
-        _persist_bank(db, pdf, account, data)
+        _persist_bank(db, pdf, account, data, upload_logger)
     else:
-        logger.warning(f"Unknown doc_type '{doc_type}' for PDF {pdf.id}, skipping persistence")
+        upload_logger.warning(f"Unknown doc_type '{doc_type}', skipping persistence")
 
 
-def _clear_existing_data(db, account: Account, doc_type: str, statement_date: datetime, current_pdf_id: int):
+def _clear_existing_data(db, account: Account, doc_type: str, statement_date: datetime, current_pdf_id: int, upload_logger):
     """Delete previously extracted data for the same account + statement_date.
     
     This ensures that re-uploading or retrying a statement replaces rather than duplicates data.
     PDF records are preserved for audit; only the derived relational data is replaced.
     """
-    logger.info(f"Clearing existing data for account={account.id}, date={statement_date}, type={doc_type}")
+    upload_logger.info(f"Clearing existing data for account={account.id}, date={statement_date}, type={doc_type}")
 
     if doc_type == "brokerage":
         # Find and delete old snapshots (cascade deletes holdings)
@@ -286,7 +289,7 @@ def _clear_existing_data(db, account: Account, doc_type: str, statement_date: da
         for old in old_snapshots:
             db.delete(old)
         if old_snapshots:
-            logger.info(f"Deleted {len(old_snapshots)} old portfolio snapshots")
+            upload_logger.info(f"Deleted {len(old_snapshots)} old portfolio snapshots")
 
     elif doc_type in ("credit_card", "bank"):
         # Delete PDF-derived transactions for this account + statement_date
@@ -296,7 +299,7 @@ def _clear_existing_data(db, account: Account, doc_type: str, statement_date: da
             Transaction.statement_date == statement_date,
             Transaction.pdf_id.isnot(None)
         ).delete(synchronize_session=False)
-        logger.info(f"Deleted {deleted_txn_count} old transactions")
+        upload_logger.info(f"Deleted {deleted_txn_count} old transactions")
 
     # Delete old account balance for this account + statement_date
     deleted_balance_count = db.query(AccountBalance).filter(
@@ -304,12 +307,12 @@ def _clear_existing_data(db, account: Account, doc_type: str, statement_date: da
         AccountBalance.statement_date == statement_date
     ).delete(synchronize_session=False)
     if deleted_balance_count:
-        logger.info(f"Deleted {deleted_balance_count} old account balances")
+        upload_logger.info(f"Deleted {deleted_balance_count} old account balances")
 
     db.commit()
 
 
-def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any]):
+def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any], upload_logger):
     """Create PortfolioSnapshot and Holdings from brokerage extraction."""
     statement_date_str = data.get("statement_date")
     statement_date = _parse_date(statement_date_str) or datetime.utcnow()
@@ -339,7 +342,7 @@ def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any]):
     db.add(snapshot)
     db.commit()
     db.refresh(snapshot)
-    logger.info(f"Created portfolio snapshot: id={snapshot.id}, total={total_value}")
+    upload_logger.info(f"Created portfolio snapshot: id={snapshot.id}, total={total_value}")
 
     # Create holdings
     total_mv = sum(
@@ -367,7 +370,7 @@ def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any]):
         db.add(holding)
 
     db.commit()
-    logger.info(f"Created {len(holdings_list)} holdings for snapshot {snapshot.id}")
+    upload_logger.info(f"Created {len(holdings_list)} holdings for snapshot {snapshot.id}")
 
     # Record account balance
     ab = AccountBalance(
@@ -380,7 +383,7 @@ def _persist_brokerage(db, pdf: PDF, account: Account, data: Dict[str, Any]):
     db.commit()
 
 
-def _persist_credit_card(db, pdf: PDF, account: Account, data: Dict[str, Any]):
+def _persist_credit_card(db, pdf: PDF, account: Account, data: Dict[str, Any], upload_logger):
     """Create Transactions from credit card extraction."""
     statement_date_str = data.get("statement_date")
     statement_date = _parse_date(statement_date_str)
@@ -402,7 +405,7 @@ def _persist_credit_card(db, pdf: PDF, account: Account, data: Dict[str, Any]):
         db.add(txn)
 
     db.commit()
-    logger.info(f"Created {len(transactions)} credit card transactions for PDF {pdf.id}")
+    upload_logger.info(f"Created {len(transactions)} credit card transactions")
 
     # Record account balance (statement balance as liability)
     statement_balance = Decimal(str(data.get("statement_balance", 0) or 0))
@@ -417,7 +420,7 @@ def _persist_credit_card(db, pdf: PDF, account: Account, data: Dict[str, Any]):
         db.commit()
 
 
-def _persist_bank(db, pdf: PDF, account: Account, data: Dict[str, Any]):
+def _persist_bank(db, pdf: PDF, account: Account, data: Dict[str, Any], upload_logger):
     """Create Transactions from bank statement extraction."""
     statement_date_str = data.get("statement_date")
     statement_date = _parse_date(statement_date_str)
@@ -439,7 +442,7 @@ def _persist_bank(db, pdf: PDF, account: Account, data: Dict[str, Any]):
         db.add(txn)
 
     db.commit()
-    logger.info(f"Created {len(transactions)} bank transactions for PDF {pdf.id}")
+    upload_logger.info(f"Created {len(transactions)} bank transactions")
 
     # Record account balance from ending balance
     balances = data.get("balances", {})
