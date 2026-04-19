@@ -1,9 +1,11 @@
-"""AI Suggestions router"""
-from fastapi import APIRouter, Depends
+"""AI Suggestions router - SQLite edition"""
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from app.database.connection import get_supabase_client
+from app.database import get_db
+from app.database.models import AISuggestion, LifeStageProfile
 from app.routers.auth import get_current_user
 
 router = APIRouter()
@@ -17,58 +19,96 @@ class SuggestionFeedback(BaseModel):
 @router.get("/suggestions")
 async def get_suggestions(
     is_active: Optional[bool] = True,
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get AI suggestions"""
-    client = get_supabase_client()
-    
-    query = client.table("ai_suggestions").select(
-        "*, life_stage_profiles!inner(user_id)"
-    ).eq("life_stage_profiles.user_id", current_user["id"])
+    query = db.query(AISuggestion).join(LifeStageProfile).filter(
+        LifeStageProfile.user_id == current_user.id
+    )
     
     if is_active is not None:
-        query = query.eq("is_active", is_active)
+        query = query.filter(AISuggestion.is_active == is_active)
     
-    result = query.order("created_at", desc=True).execute()
-    return {"suggestions": result.data}
+    suggestions = query.order_by(AISuggestion.created_at.desc()).all()
+    
+    return {
+        "suggestions": [
+            {
+                "id": s.id,
+                "suggestion_type": s.suggestion_type,
+                "action_json": s.action_json,
+                "reasoning_text": s.reasoning_text,
+                "reasoning_json": s.reasoning_json,
+                "confidence_score": s.confidence_score,
+                "priority": s.priority,
+                "user_feedback": s.user_feedback,
+                "user_note": s.user_note,
+                "is_active": s.is_active,
+                "created_at": s.created_at
+            }
+            for s in suggestions
+        ]
+    }
 
 
 @router.post("/suggestions/{suggestion_id}/feedback")
 async def update_suggestion_feedback(
     suggestion_id: int,
     feedback: SuggestionFeedback,
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Update suggestion with user feedback"""
-    client = get_supabase_client()
-    
     # Verify ownership
-    check = client.table("ai_suggestions").select(
-        "*, life_stage_profiles!inner(user_id)"
-    ).eq("id", suggestion_id).eq("life_stage_profiles.user_id", current_user["id"]).execute()
+    suggestion = db.query(AISuggestion).join(LifeStageProfile).filter(
+        AISuggestion.id == suggestion_id,
+        LifeStageProfile.user_id == current_user.id
+    ).first()
     
-    if not check.data:
-        return {"error": "Suggestion not found"}
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
     
     # Update
-    result = client.table("ai_suggestions").update({
-        "user_feedback": feedback.feedback,
-        "user_note": feedback.note,
-        "is_active": feedback.feedback not in ["accept", "reject"]
-    }).eq("id", suggestion_id).execute()
+    suggestion.user_feedback = feedback.feedback
+    suggestion.user_note = feedback.note
+    suggestion.is_active = feedback.feedback not in ["accept", "reject"]
     
-    return {"suggestion": result.data[0]}
+    db.commit()
+    db.refresh(suggestion)
+    
+    return {
+        "suggestion": {
+            "id": suggestion.id,
+            "user_feedback": suggestion.user_feedback,
+            "user_note": suggestion.user_note,
+            "is_active": suggestion.is_active
+        }
+    }
 
 
 @router.get("/suggestions/decision-trail")
 async def get_decision_trail(
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get history of all suggestions and decisions"""
-    client = get_supabase_client()
+    suggestions = db.query(AISuggestion).join(LifeStageProfile).filter(
+        LifeStageProfile.user_id == current_user.id
+    ).order_by(AISuggestion.created_at.desc()).all()
     
-    result = client.table("ai_suggestions").select(
-        "*, life_stage_profiles!inner(user_id)"
-    ).eq("life_stage_profiles.user_id", current_user["id"]).order("created_at", desc=True).execute()
-    
-    return {"trail": result.data}
+    return {
+        "trail": [
+            {
+                "id": s.id,
+                "suggestion_type": s.suggestion_type,
+                "reasoning_text": s.reasoning_text,
+                "confidence_score": s.confidence_score,
+                "priority": s.priority,
+                "user_feedback": s.user_feedback,
+                "is_active": s.is_active,
+                "created_at": s.created_at
+            }
+            for s in suggestions
+        ]
+    }

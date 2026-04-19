@@ -1,9 +1,12 @@
-"""Transactions router"""
+"""Transactions router - SQLite edition"""
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
-from app.database.connection import get_supabase_client
+from app.database import get_db
+from app.database.models import Transaction, Account
 from app.routers.auth import get_current_user
 
 router = APIRouter()
@@ -16,61 +19,115 @@ async def get_transactions(
     end_date: Optional[datetime] = None,
     category: Optional[str] = None,
     min_amount: Optional[float] = None,
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get transactions with filters"""
-    client = get_supabase_client()
-    
-    query = client.table("transactions").select(
-        "*, accounts!inner(user_id)"
-    ).eq("accounts.user_id", current_user["id"])
+    query = db.query(Transaction).join(Account).filter(
+        Account.user_id == current_user.id
+    )
     
     if account_id:
-        query = query.eq("account_id", account_id)
+        query = query.filter(Transaction.account_id == account_id)
     if start_date:
-        query = query.gte("date", start_date.isoformat())
+        query = query.filter(Transaction.date >= start_date)
     if end_date:
-        query = query.lte("date", end_date.isoformat())
+        query = query.filter(Transaction.date <= end_date)
     if category:
-        query = query.eq("category", category)
+        query = query.filter(Transaction.category == category)
     if min_amount:
-        query = query.gte("amount", min_amount)
+        query = query.filter(Transaction.amount >= min_amount)
     
-    result = query.order("date", desc=True).execute()
-    return {"transactions": result.data}
+    transactions = query.order_by(Transaction.date.desc()).all()
+    
+    return {
+        "transactions": [
+            {
+                "id": t.id,
+                "account_id": t.account_id,
+                "date": t.date,
+                "merchant": t.merchant,
+                "category": t.category,
+                "amount": t.amount,
+                "is_recurring": t.is_recurring,
+                "recurring_frequency": t.recurring_frequency
+            }
+            for t in transactions
+        ]
+    }
 
 
 @router.get("/transactions/summary")
 async def get_transactions_summary(
     year: int = Query(...),
     month: int = Query(...),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get monthly spending summary by category"""
-    client = get_supabase_client()
+    # Calculate date range for the month
+    from calendar import monthrange
+    start_date = datetime(year, month, 1)
+    end_day = monthrange(year, month)[1]
+    end_date = datetime(year, month, end_day, 23, 59, 59)
     
-    result = client.rpc("get_spending_by_category", {
-        "p_user_id": current_user["id"],
-        "p_year": year,
-        "p_month": month
-    }).execute()
+    # Query transactions in date range
+    query = db.query(
+        Transaction.category,
+        func.sum(Transaction.amount).label('total'),
+        func.count(Transaction.id).label('count')
+    ).join(Account).filter(
+        Account.user_id == current_user.id,
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    ).group_by(Transaction.category)
     
-    return {"summary": result.data}
+    results = query.all()
+    
+    return {
+        "summary": [
+            {
+                "category": r.category,
+                "total": r.total,
+                "count": r.count
+            }
+            for r in results
+        ],
+        "year": year,
+        "month": month
+    }
 
 
 @router.get("/transactions/expensive")
 async def get_expensive_transactions(
     threshold: float = 200.0,
     days: int = 30,
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get transactions above threshold"""
-    client = get_supabase_client()
+    start_date = datetime.now() - timedelta(days=days)
     
-    result = client.rpc("get_expensive_items", {
-        "p_user_id": current_user["id"],
-        "p_threshold": threshold,
-        "p_days": days
-    }).execute()
+    query = db.query(Transaction).join(Account).filter(
+        Account.user_id == current_user.id,
+        Transaction.amount >= threshold,
+        Transaction.date >= start_date
+    ).order_by(Transaction.date.desc())
     
-    return {"transactions": result.data}
+    transactions = query.all()
+    
+    return {
+        "transactions": [
+            {
+                "id": t.id,
+                "date": t.date,
+                "merchant": t.merchant,
+                "category": t.category,
+                "amount": t.amount
+            }
+            for t in transactions
+        ],
+        "threshold": threshold,
+        "days": days,
+        "count": len(transactions)
+    }

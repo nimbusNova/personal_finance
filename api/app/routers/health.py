@@ -1,21 +1,28 @@
 """Health check router"""
 from fastapi import APIRouter
-from app.database.connection import get_supabase_client
+from sqlalchemy import text
+from app.database import get_db
 
 router = APIRouter()
 
 
 @router.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "0.1.0"}
+    return {"status": "healthy", "version": "0.1.0", "edition": "sqlite"}
 
 
 @router.get("/health/db")
 async def db_health_check():
+    """Check database connectivity"""
     try:
-        client = get_supabase_client()
-        # Simple query to test connection
-        result = client.table("users").select("count", count="exact").limit(1).execute()
-        return {"status": "healthy", "db": "connected", "count": result.count}
+        from app.database import get_engine
+        engine = get_engine()
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            row = result.fetchone()
+            if row and row[0] == 1:
+                return {"status": "healthy", "db": "connected", "edition": "sqlite"}
+            else:
+                return {"status": "unhealthy", "db": "error", "error": "Unexpected result"}
     except Exception as e:
         return {"status": "unhealthy", "db": "disconnected", "error": str(e)}
