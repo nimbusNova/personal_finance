@@ -7,6 +7,7 @@ addopts = "-v --tb=short --strict-markers"
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may use database/API)",
+    "e2e: End-to-end tests (full user workflows)",
     "slow: Slow tests (skip in quick mode)",
 ]
 asyncio_mode = "auto"

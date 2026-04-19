@@ -108,40 +108,91 @@ personal_finance/
 
 ## Testing
 
-### Run all tests with coverage
-```bash
-./test.sh
-```
+We have **three levels of tests** to ensure reliability:
 
-### Run quick unit tests only
+### 1. Unit Tests ⚡ (Fastest)
+Test individual functions/models in isolation. No database or API calls.
+
 ```bash
 ./test-quick.sh
+# or
+cd api && pytest -m unit
 ```
 
-### Run specific test categories
+### 2. Integration Tests 🔗 (Medium)
+Test API endpoints with real database (in-memory SQLite).
+
 ```bash
-cd api
-source venv/bin/activate
-
-# Unit tests only (fast)
-pytest -m unit
-
-# Integration tests
-pytest -m integration
-
-# With coverage report
-pytest --cov=app --cov-report=html
-# Open api/htmlcov/index.html in browser
+./test-integration.sh
+# or
+cd api && pytest -m integration
 ```
 
-### Test structure
+### 3. E2E Tests 🎭 (Full Workflows)
+Test complete user journeys: upload → extract → review → insights.
+
+```bash
+./test-e2e.sh
+# or
+cd api && pytest -m e2e
+```
+
+### Run Everything
+
+```bash
+./test.sh              # All tests with coverage report
+```
+
+### Test Structure
+
 ```
 api/tests/
-├── conftest.py           # Fixtures and config
-├── test_models.py        # Database model tests
-├── test_pdf_service.py   # PDF service tests
-├── test_kimi_service.py  # Kimi API tests
-└── test_api.py           # API endpoint tests
+├── conftest.py              # Shared fixtures
+├── test_models.py           # 35+ unit tests for database models
+├── test_pdf_service.py      # 6 unit tests for file storage
+├── test_kimi_service.py     # 8 unit tests for AI extraction
+├── test_api.py              # 10 integration tests for endpoints
+└── test_e2e.py              # 8 end-to-end workflow tests
+```
+
+### Coverage Report
+
+After running tests, open coverage report:
+```bash
+open api/htmlcov/index.html
+```
+
+### Test Categories Explained
+
+| Category | Speed | Scope | Examples |
+|----------|-------|-------|----------|
+| **Unit** | ⚡ <1s | Single function | `test_create_user()`, `test_save_pdf()` |
+| **Integration** | 🔗 ~5s | API + DB | `test_upload_pdf()`, `test_get_holdings()` |
+| **E2E** | 🎭 ~30s | Full workflow | `test_pdf_processing_workflow()` |
+
+### Writing New Tests
+
+```python
+# Unit test - fast, isolated
+@pytest.mark.unit
+def test_my_function():
+    result = my_function()
+    assert result == expected
+
+# Integration test - uses API client
+@pytest.mark.integration
+def test_api_endpoint(client):
+    response = client.get("/api/v1/endpoint")
+    assert response.status_code == 200
+
+# E2E test - full workflow
+@pytest.mark.e2e
+def test_user_journey(client, db_session):
+    # 1. Create user
+    # 2. Upload PDF
+    # 3. Extract data
+    # 4. Verify results
+    pass
 ```
 
 ---
