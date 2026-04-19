@@ -15,13 +15,18 @@ from app.database import get_db
 from app.main import app
 
 
-# Test database URL (in-memory SQLite for unit tests)
-TEST_DATABASE_URL = "sqlite:///:memory:"
+# Use file-based test database for integration tests
+TEST_DB_PATH = "/tmp/test_personal_finance.db"
+TEST_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
 
 
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database session for each test"""
+    # Clean up any existing test database
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+    
     engine = create_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False}
@@ -38,20 +43,32 @@ def db_session():
     finally:
         session.close()
         Base.metadata.drop_all(bind=engine)
+        if os.path.exists(TEST_DB_PATH):
+            os.remove(TEST_DB_PATH)
 
 
 @pytest.fixture(scope="function")
 def client(db_session):
     """Test client for FastAPI app with test database override"""
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+    # Create a new engine for the test database
+    from sqlalchemy import create_engine
+    engine = create_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
-    # Override the dependency
+    def override_get_db():
+        db = TestSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+    
+    # Override the dependency BEFORE creating TestClient
     app.dependency_overrides[get_db] = override_get_db
     
+    # Create test client
     with TestClient(app) as test_client:
         yield test_client
     
