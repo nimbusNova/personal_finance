@@ -20,7 +20,11 @@ async def get_holdings(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get holdings - filtered by snapshot or account"""
+    """Get holdings - filtered by snapshot or account.
+    
+    weight_pct is recalculated against the total market value of all returned holdings
+    so that it reflects portfolio-wide weights, not per-account weights.
+    """
     logger.debug(f"Get holdings: user={current_user.email}, snapshot_id={snapshot_id}, account_id={account_id}")
     query = db.query(Holding).join(PortfolioSnapshot).join(Account).filter(
         Account.user_id == current_user.id
@@ -32,7 +36,11 @@ async def get_holdings(
         query = query.filter(PortfolioSnapshot.account_id == account_id)
     
     holdings = query.all()
-    logger.info(f"Get holdings returned: {len(holdings)} records for user={current_user.email}")
+    
+    # Recalculate weight_pct against total market value of all returned holdings
+    total_mv = sum(float(h.market_value or 0) for h in holdings)
+    
+    logger.info(f"Get holdings returned: {len(holdings)} records, total_mv={total_mv} for user={current_user.email}")
     return {
         "holdings": [
             {
@@ -48,7 +56,7 @@ async def get_holdings(
                 "market_value": h.market_value,
                 "cost_basis": h.cost_basis,
                 "unrealized_pnl": h.unrealized_pnl,
-                "weight_pct": h.weight_pct,
+                "weight_pct": round((float(h.market_value or 0) / total_mv * 100), 2) if total_mv > 0 else h.weight_pct,
                 "is_manual_correction": h.is_manual_correction
             }
             for h in holdings
