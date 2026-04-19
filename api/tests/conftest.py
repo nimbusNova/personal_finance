@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database.models import Base
+from app.database import get_db
 from app.main import app
 
 
@@ -40,16 +41,29 @@ def db_session():
 
 
 @pytest.fixture(scope="function")
+def client(db_session):
+    """Test client for FastAPI app with test database override"""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    # Override the dependency
+    app.dependency_overrides[get_db] = override_get_db
+    
+    with TestClient(app) as test_client:
+        yield test_client
+    
+    # Clean up override
+    del app.dependency_overrides[get_db]
+
+
+@pytest.fixture(scope="function")
 def test_data_dir():
     """Create temporary directory for test data"""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield tmpdir
-
-
-@pytest.fixture(scope="module")
-def client():
-    """Test client for FastAPI app"""
-    return TestClient(app)
 
 
 @pytest.fixture
