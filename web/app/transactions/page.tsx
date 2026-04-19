@@ -109,12 +109,12 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleSaveCategory = async (txId: number) => {
-    if (!editCategory) return;
+  const handleSaveCategory = async (txId: number, newCategory: string) => {
+    if (!newCategory) return;
     try {
-      await updateTransactionCategory(txId, editCategory);
+      await updateTransactionCategory(txId, newCategory);
       setTransactions((prev) =>
-        prev.map((t) => (t.id === txId ? { ...t, category: editCategory } : t))
+        prev.map((t) => (t.id === txId ? { ...t, category: newCategory } : t))
       );
       setEditingTx(null);
       setEditCategory('');
@@ -340,7 +340,7 @@ export default function TransactionsPage() {
                                       const newCat = e.target.value;
                                       if (!newCat) return;
                                       setEditCategory(newCat);
-                                      await handleSaveCategory(t.id);
+                                      await handleSaveCategory(t.id, newCat);
                                     }}
                                     onBlur={() => setEditingTx(null)}
                                     className="bg-gray-700 border border-gray-600 text-white text-xs rounded px-2 py-1 outline-none"
