@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import { usePrivacy } from '@/app/context/PrivacyContext';
-import { Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut, Eye, EyeOff } from 'lucide-react';
+import {
+  Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut,
+  Eye, EyeOff, ChevronDown,
+} from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,19 +16,37 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+const topNavItems = [
   { href: '/upload', label: 'Upload', icon: Upload },
+  { href: '/suggestions', label: 'Suggestions', icon: Lightbulb },
+];
+
+const dashboardSubItems = [
+  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/holdings', label: 'Holdings', icon: PieChart },
   { href: '/transactions', label: 'Spending', icon: Receipt },
-  { href: '/suggestions', label: 'Suggestions', icon: Lightbulb },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dashOpen, setDashOpen] = useState(false);
+  const dashRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { logout } = useAuth();
   const { showAmounts, togglePrivacy } = usePrivacy();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dashRef.current && !dashRef.current.contains(e.target as Node)) {
+        setDashOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const isDashboardActive = dashboardSubItems.some((i) => pathname === i.href);
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700">
@@ -37,7 +58,48 @@ export default function Navbar() {
               Portfolio Intelligence
             </Link>
             <div className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => {
+              {/* Dashboard dropdown */}
+              <div className="relative" ref={dashRef}>
+                <button
+                  onClick={() => setDashOpen((prev) => !prev)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition',
+                    isDashboardActive
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  )}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                  <ChevronDown className={cn('w-3 h-3 transition', dashOpen && 'rotate-180')} />
+                </button>
+                {dashOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-lg overflow-hidden z-50">
+                    {dashboardSubItems.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setDashOpen(false)}
+                          className={cn(
+                            'flex items-center gap-2 px-3 py-2 text-sm transition',
+                            active
+                              ? 'bg-gray-700 text-white'
+                              : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {topNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
@@ -87,7 +149,32 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-700">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {navItems.map((item) => {
+            {/* Dashboard group */}
+            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Dashboard
+            </div>
+            {dashboardSubItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium transition',
+                    isActive
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+            {/* Other top-level items */}
+            {topNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
