@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
+import { usePrivacy } from '@/app/context/PrivacyContext';
+import { formatCurrencyPrivate, formatNumber } from '@/lib/formatters';
 import { getHoldings } from '@/lib/api';
 import { PieChart, AlertCircle, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -61,11 +63,8 @@ export default function HoldingsPage() {
     });
   }, [holdings, sortKey, sortDir]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
-
-  const formatNumber = (val: number) =>
-    new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(val || 0);
+  const { showAmounts } = usePrivacy();
+  const formatCurrency = (val: number) => formatCurrencyPrivate(val, showAmounts);
 
   const SortHeader = ({ label, sortKey: key }: { label: string; sortKey: SortKey }) => {
     const active = sortKey === key;

@@ -35,8 +35,17 @@ async function fetchApi(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    log.error(`${options.method || 'GET'} ${url} failed: ${res.status} ${err.detail || ''}`);
-    throw new Error(err.detail || `Request failed: ${res.status}`);
+    // FastAPI validation errors return { detail: [{ msg: '...', loc: [...] }] }
+    let message: string;
+    if (Array.isArray(err.detail)) {
+      message = err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
+    } else if (typeof err.detail === 'string') {
+      message = err.detail;
+    } else {
+      message = `Request failed: ${res.status}`;
+    }
+    log.error(`${options.method || 'GET'} ${url} failed: ${res.status} ${message}`);
+    throw new Error(message);
   }
 
   log.debug(`${options.method || 'GET'} ${url} -> ${res.status}`);
@@ -86,11 +95,12 @@ export async function getHoldings() {
   return fetchApi('/api/v1/holdings');
 }
 
-export async function getTransactions(accountId?: number, startDate?: string, endDate?: string) {
+export async function getTransactions(accountId?: number, startDate?: string, endDate?: string, category?: string) {
   const qs = new URLSearchParams();
   if (accountId) qs.append('account_id', String(accountId));
   if (startDate) qs.append('start_date', startDate);
   if (endDate) qs.append('end_date', endDate);
+  if (category) qs.append('category', category);
   return fetchApi(`/api/v1/transactions?${qs.toString()}`);
 }
 

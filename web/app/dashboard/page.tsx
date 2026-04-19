@@ -6,6 +6,8 @@ import Navbar from '@/app/components/Navbar';
 import StatCard from '@/app/components/StatCard';
 import AllocationChart from '@/app/components/AllocationChart';
 import PdfViewerModal from '@/app/components/PdfViewerModal';
+import { usePrivacy } from '@/app/context/PrivacyContext';
+import { formatCurrencyPrivate } from '@/lib/formatters';
 import {
   getPortfolioSummary,
   getSuggestions,
@@ -160,8 +162,9 @@ export default function DashboardPage() {
     }
   };
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+  const { showAmounts } = usePrivacy();
+
+  const formatCurrency = (val: number) => formatCurrencyPrivate(val, showAmounts);
 
   const formatSize = (bytes: number) => {
     if (!bytes) return '-';
@@ -215,22 +218,26 @@ export default function DashboardPage() {
                 <StatCard
                   title="Total Net Worth"
                   value={formatCurrency(summary?.total_value || 0)}
+                  masked={!showAmounts}
                   icon={<Wallet className="w-5 h-5" />}
                 />
                 <StatCard
                   title="Invested"
                   value={formatCurrency(summary?.invested_value || 0)}
+                  masked={!showAmounts}
                   icon={<TrendingUp className="w-5 h-5" />}
                 />
                 <StatCard
                   title="Cash"
                   value={formatCurrency(summary?.cash_balance || 0)}
+                  masked={!showAmounts}
                   icon={<Banknote className="w-5 h-5" />}
                 />
                 {hasCcDebt ? (
                   <StatCard
                     title="Credit Card Debt"
                     value={formatCurrency(summary?.credit_card_debt || 0)}
+                    masked={!showAmounts}
                     icon={<CreditCard className="w-5 h-5 text-red-400" />}
                   />
                 ) : (

@@ -14,11 +14,23 @@ router = APIRouter()
 logger = logging.getLogger("api.transactions")
 
 
+def _parse_date_str(date_str: Optional[str]) -> Optional[datetime]:
+    """Parse YYYY-MM-DD or ISO datetime string to datetime."""
+    if not date_str:
+        return None
+    try:
+        if 'T' in date_str:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
 @router.get("/transactions")
 async def get_transactions(
     account_id: Optional[int] = None,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     category: Optional[str] = None,
     min_amount: Optional[float] = None,
     current_user = Depends(get_current_user),
@@ -30,12 +42,15 @@ async def get_transactions(
         Account.user_id == current_user.id
     )
     
+    parsed_start = _parse_date_str(start_date)
+    parsed_end = _parse_date_str(end_date)
+    
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
-    if start_date:
-        query = query.filter(Transaction.date >= start_date)
-    if end_date:
-        query = query.filter(Transaction.date <= end_date)
+    if parsed_start:
+        query = query.filter(Transaction.date >= parsed_start)
+    if parsed_end:
+        query = query.filter(Transaction.date <= parsed_end)
     if category:
         query = query.filter(Transaction.category == category)
     if min_amount:

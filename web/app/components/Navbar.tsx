@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut } from 'lucide-react';
+import { usePrivacy } from '@/app/context/PrivacyContext';
+import { Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut, Eye, EyeOff } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -24,6 +25,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { showAmounts, togglePrivacy } = usePrivacy();
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700">
@@ -56,7 +58,14 @@ export default function Navbar() {
               })}
             </div>
           </div>
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={togglePrivacy}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
+              title={showAmounts ? 'Hide amounts' : 'Show amounts'}
+            >
+              {showAmounts ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
             <button
               onClick={logout}
               className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
