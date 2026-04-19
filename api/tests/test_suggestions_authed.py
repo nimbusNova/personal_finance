@@ -22,13 +22,13 @@ class TestSuggestionsRouterAuthenticated:
     def test_get_suggestions_active_only(self, authenticated_client, test_user, db_session):
         """Test default is_active=true filter returns only active suggestions"""
         # Create life stage profile
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         # Create active suggestion
         active = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{"action": "rebalance"}',
             reasoning_text="Portfolio drifted",
@@ -38,7 +38,7 @@ class TestSuggestionsRouterAuthenticated:
         )
         # Create inactive suggestion
         inactive = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="tax_loss",
             action_json='{"action": "harvest"}',
             reasoning_text="Tax loss opportunity",
@@ -58,12 +58,12 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_get_suggestions_inactive(self, authenticated_client, test_user, db_session):
         """Test is_active=false returns dismissed suggestions"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         active = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{}',
             reasoning_text="Drifted",
@@ -71,7 +71,7 @@ class TestSuggestionsRouterAuthenticated:
             is_active=True
         )
         inactive = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="tax_loss",
             action_json='{}',
             reasoning_text="Tax opportunity",
@@ -91,12 +91,12 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_get_suggestions_with_data(self, authenticated_client, test_user, db_session):
         """Test suggestions return full objects with all fields"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         suggestion = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{"action": "rebalance", "target": "VTI"}',
             reasoning_text="Portfolio has drifted from target allocation",
@@ -129,12 +129,12 @@ class TestSuggestionsRouterAuthenticated:
         """Test suggestions sorted by created_at desc"""
         import time
         
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         old = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="old",
             action_json='{}',
             reasoning_text="Old",
@@ -147,7 +147,7 @@ class TestSuggestionsRouterAuthenticated:
         time.sleep(0.01)
         
         new = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="new",
             action_json='{}',
             reasoning_text="New",
@@ -167,12 +167,12 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_update_suggestion_feedback_accept(self, authenticated_client, test_user, db_session):
         """Test accepting a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         suggestion = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{}',
             reasoning_text="Drifted",
@@ -195,12 +195,12 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_update_suggestion_feedback_reject(self, authenticated_client, test_user, db_session):
         """Test rejecting a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         suggestion = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{}',
             reasoning_text="Drifted",
@@ -222,12 +222,12 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_update_suggestion_feedback_snooze(self, authenticated_client, test_user, db_session):
         """Test snoozing a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         suggestion = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rebalance",
             action_json='{}',
             reasoning_text="Drifted",
@@ -267,12 +267,12 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(other_user)
         db_session.flush()
         
-        other_profile = LifeStageProfile(user_id=other_user.id, stage="established")
+        other_profile = LifeStageProfile(user_id=other_user.id, age=35, risk_tolerance=7)
         db_session.add(other_profile)
         db_session.flush()
         
         other_suggestion = AISuggestion(
-            life_stage_id=other_profile.id,
+            life_stage_profile_id=other_profile.id,
             suggestion_type="rebalance",
             action_json='{}',
             reasoning_text="Drifted",
@@ -291,13 +291,13 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_get_decision_trail(self, authenticated_client, test_user, db_session):
         """Test decision trail returns history of all suggestions"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         # Create suggestions with different statuses
         accepted = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="accepted_action",
             action_json='{}',
             reasoning_text="Was good",
@@ -307,7 +307,7 @@ class TestSuggestionsRouterAuthenticated:
             is_active=False
         )
         rejected = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="rejected_action",
             action_json='{}',
             reasoning_text="Was bad",
@@ -317,7 +317,7 @@ class TestSuggestionsRouterAuthenticated:
             is_active=False
         )
         active = AISuggestion(
-            life_stage_id=profile.id,
+            life_stage_profile_id=profile.id,
             suggestion_type="pending_action",
             action_json='{}',
             reasoning_text="Deciding",
@@ -342,13 +342,13 @@ class TestSuggestionsRouterAuthenticated:
     
     def test_suggestion_is_active_logic(self, authenticated_client, test_user, db_session):
         """Test that accept/reject sets is_active=false but snooze keeps it true"""
-        profile = LifeStageProfile(user_id=test_user.id, stage="established")
+        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
         for feedback in ["accept", "reject", "done"]:
             suggestion = AISuggestion(
-                life_stage_id=profile.id,
+                life_stage_profile_id=profile.id,
                 suggestion_type=f"test_{feedback}",
                 action_json='{}',
                 reasoning_text="Test",

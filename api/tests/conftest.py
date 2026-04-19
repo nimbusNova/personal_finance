@@ -2,7 +2,9 @@
 import os
 import sys
 import tempfile
+import uuid
 import pytest
+import shutil
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,45 +18,54 @@ from app.main import app
 from app.routers.auth import create_access_token, get_password_hash
 
 
-# Use file-based test database for integration tests
-TEST_DB_PATH = "/tmp/test_personal_finance.db"
-TEST_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
+@pytest.fixture(scope="function")
+def test_db_dir():
+    """Create a temporary directory for test database files"""
+    temp_dir = tempfile.mkdtemp(prefix="test_pf_")
+    yield temp_dir
+    # Cleanup after test
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")
-def db_session():
-    """Create a fresh database session for each test"""
-    # Clean up any existing test database
-    if os.path.exists(TEST_DB_PATH):
-        os.remove(TEST_DB_PATH)
-    
+def test_db_path(test_db_dir):
+    """Generate a unique database file path in the temp directory"""
+    test_id = str(uuid.uuid4())[:8]
+    path = os.path.join(test_db_dir, f"test_{test_id}.db")
+    return path
+
+
+@pytest.fixture(scope="function")
+def db_engine(test_db_path):
+    """Create database engine using shared file path"""
+    database_url = f"sqlite:///{test_db_path}"
     engine = create_engine(
-        TEST_DATABASE_URL,
+        database_url,
         connect_args={"check_same_thread": False}
     )
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
-    # Create tables
     Base.metadata.create_all(bind=engine)
-    
-    # Create session
+    yield engine
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a database session"""
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
     session = TestingSessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
-        if os.path.exists(TEST_DB_PATH):
-            os.remove(TEST_DB_PATH)
 
 
 @pytest.fixture(scope="function")
-def client(db_session):
-    """Test client for FastAPI app with test database override"""
-    # Create a new engine for the test database
-    from sqlalchemy import create_engine
+def client(test_db_path):
+    """Test client using the same database file as db_session"""
+    database_url = f"sqlite:///{test_db_path}"
     engine = create_engine(
-        TEST_DATABASE_URL,
+        database_url,
         connect_args={"check_same_thread": False}
     )
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -66,14 +77,11 @@ def client(db_session):
         finally:
             db.close()
     
-    # Override the dependency BEFORE creating TestClient
     app.dependency_overrides[get_db] = override_get_db
     
-    # Create test client
     with TestClient(app) as test_client:
         yield test_client
     
-    # Clean up override
     del app.dependency_overrides[get_db]
 
 
@@ -141,7 +149,6 @@ def test_account(db_session, test_user, test_institution):
 
 @pytest.fixture
 def sample_brokerage_data():
-    """Sample brokerage statement extraction result"""
     return {
         "doc_type": "brokerage",
         "institution": "Charles Schwab",
@@ -165,7 +172,6 @@ def sample_brokerage_data():
 
 @pytest.fixture
 def sample_credit_card_data():
-    """Sample credit card statement extraction result"""
     return {
         "doc_type": "credit_card",
         "institution": "Chase",
@@ -187,7 +193,6 @@ def sample_credit_card_data():
 
 @pytest.fixture
 def mock_kimi_response():
-    """Mock response from Kimi API"""
     return {
         "success": True,
         "data": {

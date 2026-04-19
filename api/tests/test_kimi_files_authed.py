@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 class TestKimiFilesRouterAuthenticated:
     """Tests for kimi_files router with authentication"""
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_list_kimi_files_success(self, mock_get_service, authenticated_client):
         """Test listing Kimi files returns file list"""
         # Mock Kimi service
@@ -31,7 +31,7 @@ class TestKimiFilesRouterAuthenticated:
         assert len(data["data"]) == 2
         assert data["data"][0]["filename"] == "test1.pdf"
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_list_kimi_files_empty(self, mock_get_service, authenticated_client):
         """Test listing when no files exist"""
         mock_service = MagicMock()
@@ -48,7 +48,7 @@ class TestKimiFilesRouterAuthenticated:
         data = response.json()
         assert data["data"] == []
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_list_kimi_files_upstream_error(self, mock_get_service, authenticated_client):
         """Test 502 when Kimi API fails"""
         mock_service = MagicMock()
@@ -60,7 +60,7 @@ class TestKimiFilesRouterAuthenticated:
         assert response.status_code == 502
         assert "Upstream error" in response.json()["detail"]
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_delete_kimi_file_success(self, mock_get_service, authenticated_client):
         """Test deleting a Kimi file"""
         mock_service = MagicMock()
@@ -77,7 +77,7 @@ class TestKimiFilesRouterAuthenticated:
         assert data["message"] == "File deleted"
         assert data["file_id"] == "file_123"
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_delete_kimi_file_not_found(self, mock_get_service, authenticated_client):
         """Test 502 when file doesn't exist on Kimi"""
         mock_service = MagicMock()
@@ -90,7 +90,7 @@ class TestKimiFilesRouterAuthenticated:
         
         assert response.status_code == 502
     
-    @patch("app.services.kimi_service.get_kimi_service")
+    @patch("app.routers.kimi_files.get_kimi_service")
     def test_delete_kimi_file_upstream_error(self, mock_get_service, authenticated_client):
         """Test 502 on Kimi API error"""
         mock_service = MagicMock()
