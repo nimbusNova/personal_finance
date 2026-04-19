@@ -41,6 +41,10 @@ class Institution(Base):
 class Account(Base):
     __tablename__ = "accounts"
     
+    __table_args__ = (
+        UniqueConstraint('user_id', 'institution_id', 'name', name='uix_account_user_institution_name'),
+    )
+    
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)

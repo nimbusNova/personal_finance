@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Kimi (Moonshot AI)
     kimi_api_key: str = ""
     kimi_base_url: str = "https://api.moonshot.cn/v1"
-    kimi_model: str = "kimi-k2.5"
+    kimi_model: str = "moonshot-v1-128k"
     
     # Auth
     secret_key: str = "change-this-in-production"

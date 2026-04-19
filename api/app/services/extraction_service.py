@@ -234,17 +234,31 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload
         upload_logger.info(f"Created institution: {institution_name} (id={institution.id})")
 
     # Find or create Account
+    # First try exact name match
     account = db.query(Account).filter(
         Account.user_id == user_id,
         Account.institution_id == institution.id,
         Account.name == account_type
     ).first()
+
+    # If no match and we have an account number, try matching by masked number
+    if not account and data.get("account_number"):
+        masked = data["account_number"][-4:] if len(data["account_number"]) >= 4 else data["account_number"]
+        account = db.query(Account).filter(
+            Account.user_id == user_id,
+            Account.institution_id == institution.id,
+            Account.account_number_masked == masked
+        ).first()
+        if account:
+            upload_logger.info(f"Matched existing account by account number: {account.name} (id={account.id})")
+
     if not account:
         account = Account(
             user_id=user_id,
             institution_id=institution.id,
             name=account_type,
             account_type=doc_type or "unknown",
+            account_number_masked=(data.get("account_number", "")[-4:] if data.get("account_number") else None),
             is_active=True
         )
         db.add(account)
