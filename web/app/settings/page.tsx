@@ -6,10 +6,13 @@ import Link from 'next/link';
 import { getSettings, updateSettings, testApiKey } from '@/lib/api';
 import { Settings, Loader2, Eye, EyeOff, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 
+const DEFAULT_BASE_URL = 'https://api.moonshot.cn/v1';
+
 export default function SettingsPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL);
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -23,6 +26,7 @@ export default function SettingsPage() {
       .then((data) => {
         setName(data.user_name || '');
         setApiKey(data.kimi_api_key || '');
+        setBaseUrl(data.kimi_base_url || DEFAULT_BASE_URL);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -34,7 +38,7 @@ export default function SettingsPage() {
     setSaveMessage('');
     setTestResult(null);
     try {
-      await updateSettings(name.trim(), apiKey.trim());
+      await updateSettings(name.trim(), apiKey.trim(), baseUrl.trim());
       setSaveMessage('Settings saved successfully');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err: any) {
@@ -129,8 +133,7 @@ export default function SettingsPage() {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Your API key is stored locally in <code className="text-gray-400">api/data/settings.json</code>.
-                Get one at{' '}
+                Your API key is stored locally. Get one at{' '}
                 <a
                   href="https://platform.moonshot.ai"
                   target="_blank"
@@ -139,6 +142,23 @@ export default function SettingsPage() {
                 >
                   platform.moonshot.ai
                 </a>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                API Endpoint
+              </label>
+              <select
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="https://api.moonshot.cn/v1">China — api.moonshot.cn/v1</option>
+                <option value="https://api.moonshot.ai/v1">International — api.moonshot.ai/v1</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the endpoint that matches your account region.
               </p>
             </div>
 

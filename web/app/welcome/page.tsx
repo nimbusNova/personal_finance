@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { getSettings, updateSettings } from '@/lib/api';
 import { Wallet, Loader2, Eye, EyeOff } from 'lucide-react';
 
+const DEFAULT_BASE_URL = 'https://api.moonshot.cn/v1';
+
 export default function WelcomePage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_BASE_URL);
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -17,9 +20,8 @@ export default function WelcomePage() {
   useEffect(() => {
     getSettings()
       .then((data) => {
-        if (data.user_name) {
-          router.push('/dashboard');
-        }
+        if (data.user_name) router.push('/dashboard');
+        if (data.kimi_base_url) setBaseUrl(data.kimi_base_url);
       })
       .catch(() => {})
       .finally(() => setChecking(false));
@@ -28,17 +30,11 @@ export default function WelcomePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
-    if (!apiKey.trim()) {
-      setError('Please enter your Kimi API key');
-      return;
-    }
+    if (!name.trim()) { setError('Please enter your name'); return; }
+    if (!apiKey.trim()) { setError('Please enter your Kimi API key'); return; }
     setLoading(true);
     try {
-      await updateSettings(name.trim(), apiKey.trim());
+      await updateSettings(name.trim(), apiKey.trim(), baseUrl.trim());
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to save settings');
@@ -122,6 +118,24 @@ export default function WelcomePage() {
               >
                 platform.moonshot.ai
               </a>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              API Endpoint
+            </label>
+            <select
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              disabled={loading}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="https://api.moonshot.cn/v1">China — api.moonshot.cn/v1</option>
+              <option value="https://api.moonshot.ai/v1">International — api.moonshot.ai/v1</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Select the endpoint that matches your account region.
             </p>
           </div>
 

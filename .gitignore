@@ -87,3 +87,5 @@ next-env.d.ts
 
 # Runtime logs directory
 logs/
+
+.env

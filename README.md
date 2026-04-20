@@ -4,16 +4,17 @@
 
 [![CI/CD](https://github.com/nimbusNova/personal_finance/actions/workflows/ci.yml/badge.svg)](https://github.com/nimbusNova/personal_finance/actions/workflows/ci.yml)
 [![Tests](https://github.com/nimbusNova/personal_finance/actions/workflows/test.yml/badge.svg)](https://github.com/nimbusNova/personal_finance/actions/workflows/test.yml)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=fbf0df)](https://bun.sh/)
 [![Kimi](https://img.shields.io/badge/Kimi_AI-8B5CF6?style=for-the-badge&logo=openai&logoColor=white)](https://www.moonshot.cn/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
 **PDF-first portfolio tracking with AI-powered suggestions.**  
-*Runs locally on your machine with a FastAPI backend and Next.js frontend.*
+*Runs locally on your machine with Next.js full-stack (API Routes + SQLite).*
+
+> **Migration complete:** The Python FastAPI backend has been replaced with Next.js 14 API Routes. Single `bun run dev` runs everything.
 
 [Quick Start](#quick-start) • [Features](#features) • [Architecture](#architecture) • [Documentation](#documentation) • [Contributing](#contributing)
 
@@ -80,24 +81,27 @@ cd ..
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
-│   Next.js 14    │──────▶    FastAPI      │──────▶     SQLite    │
-│   (Frontend)    │      │   (Backend)      │      │   (Database)    │
-└─────────────────┘      └──────────────────┘      └─────────────────┘
-                                │
-                                ▼
-                         ┌──────────────────┐
-                         │  Kimi AI (Moonshot)│
-                         │  PDF Extraction    │
-                         └──────────────────┘
+┌─────────────────────────────────────────┐
+│           Next.js 14 Full-Stack         │
+│  ┌─────────────┐  ┌──────────────────┐  │
+│  │  React UI   │  │  API Routes      │  │
+│  │  (Frontend) │  │  (/api/v1/*)     │  │
+│  └─────────────┘  └──────────────────┘  │
+│                          │              │
+│              ┌───────────┴───────────┐  │
+│              ▼                       ▼  │
+│        ┌──────────┐           ┌────────┐│
+│        │  SQLite  │           │  Kimi  ││
+│        │  (local) │           │   AI   ││
+│        └──────────┘           └────────┘│
+└─────────────────────────────────────────┘
 ```
 
 ### Tech Stack
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS, Bun
-- **Backend**: FastAPI, SQLAlchemy, Pydantic
-- **Database**: SQLite (local file-based)
+- **Full-Stack**: Next.js 14 with API Routes, React, TypeScript, Bun
+- **Database**: SQLite via `better-sqlite3` with Drizzle ORM
 - **AI**: Kimi (Moonshot AI) for PDF extraction and suggestions
-- **Testing**: Pytest (backend), Jest (frontend)
+- **Testing**: Jest (frontend + API client)
 
 ### Data Flow
 1. Upload PDF statements (brokerage, bank, credit card)
@@ -144,16 +148,15 @@ cd ..
 ## 🛡️ Security & Privacy
 
 - **Local-First**: All data stored locally in SQLite; no cloud database required
-- **API Key Security**: Kimi API keys are stored in `.env` (never committed)
+- **API Key Security**: Kimi API keys stored in `web/data/settings.json` (gitignored)
 - **No Telemetry**: No analytics, tracking, or data collection
-- **PDF Storage**: PDFs stored locally in `api/data/pdfs/` (gitignored)
-- **Authentication**: JWT-based auth with bcrypt password hashing
+- **PDF Storage**: PDFs stored locally in `web/data/pdfs/` (gitignored)
+- **No Authentication**: Single-user local app; no login required
 
 **Before going to production:**
-1. Change `SECRET_KEY` in `.env`
-2. Use a production WSGI server (e.g., Gunicorn + Uvicorn workers)
-3. Enable HTTPS
-4. Consider migrating from SQLite to PostgreSQL for multi-user scenarios
+1. Build with `bun run build` and deploy with `bun run start`
+2. Enable HTTPS
+3. Consider migrating from SQLite to PostgreSQL for multi-user scenarios
 
 ---
 
@@ -226,7 +229,7 @@ pre-commit install
 ## 🙏 Acknowledgments
 
 - **[Kimi AI](https://www.moonshot.cn/)** by Moonshot — PDF extraction and AI suggestions
-- **[FastAPI](https://fastapi.tiangolo.com/)** — Backend framework
+- **[Drizzle ORM](https://orm.drizzle.team/)** — Type-safe SQLite queries
 - **[Next.js](https://nextjs.org/)** — Frontend framework
 - **[Bun](https://bun.sh/)** — JavaScript runtime and package manager
 

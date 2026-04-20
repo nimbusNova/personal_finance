@@ -7,102 +7,19 @@ on:
     branches: [ main ]
 
 jobs:
-  # Backend Tests
-  test-backend:
+  build-and-test:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-        cache-dependency-path: 'api/requirements.txt'
-    
-    - name: Install dependencies
-      working-directory: ./api
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Create .env file
-      working-directory: ./api
-      run: |
-        echo "KIMI_API_KEY=test-key-for-ci" > .env
-        echo "SECRET_KEY=test-secret-key-for-ci" >> .env
-    
-    - name: Initialize database
-      working-directory: ./api
-      run: |
-        python -c "from app.database import init_db; init_db()"
-    
-    - name: Run unit tests
-      working-directory: ./api
-      run: |
-        pytest -m unit -v --tb=short
-    
-    - name: Run integration tests
-      working-directory: ./api
-      run: |
-        pytest -m integration -v --tb=short
-      continue-on-error: true
-    
-    - name: Generate coverage report
-      working-directory: ./api
-      run: |
-        pytest --cov=app --cov-report=xml --cov-report=html
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        files: ./api/coverage.xml
-        fail_ci_if_error: false
-        verbose: true
-
-  # Frontend Build Check
-  build-frontend:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Bun
-      uses: oven-sh/setup-bun@v1
+    - uses: actions/checkout@v4
+    - uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
-    
-    - name: Install dependencies
+    - run: bun install
       working-directory: ./web
-      run: bun install
-    
-    - name: Build frontend
+    - run: bun run build
       working-directory: ./web
-      run: bun run build
-      continue-on-error: true
-
-  # Lint & Type Check
-  lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install linting tools
-      run: |
-        pip install flake8 black isort
-    
-    - name: Check Python code style
-      working-directory: ./api
-      run: |
-        flake8 app --count --select=E9,F63,F7,F82 --show-source --statistics
+    - run: bun test
+      working-directory: ./web
+    - run: bun run lint
+      working-directory: ./web
       continue-on-error: true

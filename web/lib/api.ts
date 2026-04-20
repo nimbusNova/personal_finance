@@ -1,7 +1,7 @@
 import { createLogger } from './logger';
 
 const log = createLogger('api');
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = ''; // Same-origin — Next.js API Routes
 
 export async function fetchApi(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -39,10 +39,10 @@ export async function getSettings() {
   return fetchApi('/api/v1/settings');
 }
 
-export async function updateSettings(user_name: string, kimi_api_key: string) {
+export async function updateSettings(user_name: string, kimi_api_key: string, kimi_base_url?: string) {
   return fetchApi('/api/v1/settings', {
     method: 'POST',
-    body: JSON.stringify({ user_name, kimi_api_key }),
+    body: JSON.stringify({ user_name, kimi_api_key, kimi_base_url }),
   });
 }
 

@@ -6,7 +6,7 @@ import { getUploadById, updateExtractedData } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('pdf-modal');
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = ''; // Same-origin — Next.js API Routes
 
 async function fetchPdfBlob(pdfId: number): Promise<Blob | null> {
   const res = await fetch(`${API_BASE_URL}/api/v1/uploads/${pdfId}/file`);
