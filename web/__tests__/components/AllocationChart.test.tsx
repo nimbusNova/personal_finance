@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import AllocationChart from '../app/components/AllocationChart';
+import AllocationChart from '@components/AllocationChart';
 
 // Mock Recharts to avoid SVG rendering issues in tests
 jest.mock('recharts', () => ({

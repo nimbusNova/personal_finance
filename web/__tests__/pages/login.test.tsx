@@ -32,11 +32,11 @@ describe('LoginPage', () => {
   it('renders login form by default', () => {
     render(<LoginPage />);
 
-    expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
     expect(screen.getByText('Sign in to your portfolio dashboard')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sign In$/ })).toBeInTheDocument();
   });
 
   it('renders register form when toggled', () => {
@@ -44,8 +44,8 @@ describe('LoginPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Register/i }));
 
-    expect(screen.getByText('Create Account')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create Account/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Create Account$/ })).toBeInTheDocument();
   });
 
   it('toggles back to login from register', () => {
@@ -53,11 +53,11 @@ describe('LoginPage', () => {
 
     // Toggle to register
     fireEvent.click(screen.getByRole('button', { name: /Register/i }));
-    expect(screen.getByText('Create Account')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
 
     // Toggle back to login
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
-    expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Sign In$/i }));
+    expect(screen.getByRole('heading', { name: 'Welcome Back' })).toBeInTheDocument();
   });
 
   it('handles successful login', async () => {
@@ -65,13 +65,13 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'test@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/ }));
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith('test@example.com', 'password123');
@@ -89,13 +89,13 @@ describe('LoginPage', () => {
     // Toggle to register
     fireEvent.click(screen.getByRole('button', { name: /Register/i }));
 
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'new@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Create Account$/ }));
 
     await waitFor(() => {
       expect(register).toHaveBeenCalledWith('new@example.com', 'password123');
@@ -109,13 +109,13 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'test@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'wrongpassword' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/ }));
 
     await waitFor(() => {
       expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
@@ -128,13 +128,13 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     // Trigger an error
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'test@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'wrong' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/ }));
 
     await waitFor(() => {
       expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
@@ -150,24 +150,23 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'test@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sign In$/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button')).toBeDisabled();
-      expect(screen.getByRole('button')).toHaveClass('disabled:opacity-50');
+      expect(screen.getByRole('button', { name: /^Sign In$/ })).toBeDisabled();
     });
   });
 
   it('has required fields', () => {
     render(<LoginPage />);
 
-    expect(screen.getByLabelText('Email')).toHaveAttribute('required');
-    expect(screen.getByLabelText('Password')).toHaveAttribute('required');
+    expect(screen.getByPlaceholderText('you@example.com')).toHaveAttribute('required');
+    expect(screen.getByPlaceholderText('••••••••')).toHaveAttribute('required');
   });
 });

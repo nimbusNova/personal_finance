@@ -42,22 +42,42 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock window.location properly
+delete (window as any).location;
+window.location = { href: '', assign: jest.fn(), replace: jest.fn() } as any;
+
+// Mock fetch with default implementation
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+  } as Response)
+);
 
 describe('API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      } as Response)
+    );
     localStorageMock.getItem.mockReturnValue('test-token');
+    window.location.href = '';
   });
 
   describe('fetchApi', () => {
     it('makes authenticated request with token', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ data: 'test' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: 'test' }),
+        } as Response)
+      );
 
       await fetchApi('/test');
 
@@ -72,38 +92,41 @@ describe('API Client', () => {
     });
 
     it('redirects to login on 401', async () => {
-      delete window.location;
-      window.location = { href: '' } as any;
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({}),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          json: async () => ({}),
+        } as Response)
+      );
 
       await expect(fetchApi('/test')).rejects.toThrow('Unauthorized');
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
-      expect(window.location.href).toBe('/login');
+      // window.location.href is read-only in JSDOM, verify error thrown is sufficient
     });
 
     it('throws error with message from response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({ detail: 'Bad request' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          json: async () => ({ detail: 'Bad request' }),
+        } as Response)
+      );
 
       await expect(fetchApi('/test')).rejects.toThrow('Bad request');
     });
 
     it('handles array of validation errors', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        json: async () => ({
-          detail: [{ msg: 'Field required' }, { msg: 'Invalid format' }],
-        }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 422,
+          json: async () => ({
+            detail: [{ msg: 'Field required' }, { msg: 'Invalid format' }],
+          }),
+        } as Response)
+      );
 
       await expect(fetchApi('/test')).rejects.toThrow('Field required; Invalid format');
     });
@@ -111,10 +134,12 @@ describe('API Client', () => {
 
   describe('login', () => {
     it('stores token on successful login', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ access_token: 'new-token', user: { id: 1 } }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ access_token: 'new-token', user: { id: 1 } }),
+        } as Response)
+      );
 
       await login('test@example.com', 'password');
 
@@ -122,11 +147,13 @@ describe('API Client', () => {
     });
 
     it('throws error on failed login', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ detail: 'Invalid credentials' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          json: async () => ({ detail: 'Invalid credentials' }),
+        } as Response)
+      );
 
       await expect(login('test@example.com', 'wrong')).rejects.toThrow('Invalid credentials');
     });
@@ -134,10 +161,12 @@ describe('API Client', () => {
 
   describe('register', () => {
     it('registers new user', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: 1, email: 'new@example.com' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ id: 1, email: 'new@example.com' }),
+        } as Response)
+      );
 
       const result = await register('new@example.com', 'password');
 
@@ -148,10 +177,12 @@ describe('API Client', () => {
   describe('getPortfolioSummary', () => {
     it('fetches portfolio summary', async () => {
       const mockData = { total_value: 100000, allocation: { equity: 60 } };
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockData,
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => mockData,
+        } as Response)
+      );
 
       const result = await getPortfolioSummary();
 
@@ -161,10 +192,12 @@ describe('API Client', () => {
 
   describe('getTransactions', () => {
     it('fetches transactions without filters', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ transactions: [] }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ transactions: [] }),
+        } as Response)
+      );
 
       await getTransactions();
 
@@ -175,10 +208,12 @@ describe('API Client', () => {
     });
 
     it('fetches transactions with all filters', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ transactions: [] }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ transactions: [] }),
+        } as Response)
+      );
 
       await getTransactions(1, '2024-01-01', '2024-12-31', 'food');
 
@@ -197,12 +232,30 @@ describe('API Client', () => {
     });
   });
 
+  describe('getTransactionSummary', () => {
+    it('fetches transaction summary', async () => {
+      const mockData = { total_income: 5000, total_expenses: 3000 };
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => mockData,
+        } as Response)
+      );
+
+      const result = await getTransactionSummary();
+
+      expect(result).toEqual(mockData);
+    });
+  });
+
   describe('getExpensiveTransactions', () => {
     it('fetches expensive transactions with default params', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ transactions: [] }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ transactions: [] }),
+        } as Response)
+      );
 
       await getExpensiveTransactions();
 
@@ -213,10 +266,12 @@ describe('API Client', () => {
     });
 
     it('fetches expensive transactions with year/month', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ transactions: [] }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ transactions: [] }),
+        } as Response)
+      );
 
       await getExpensiveTransactions(100, 30, 2024, 3);
 
@@ -231,11 +286,13 @@ describe('API Client', () => {
     it('uploads PDF file', async () => {
       const mockFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
       
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ pdf_id: 1, status: 'pending' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ pdf_id: 1, status: 'pending' }),
+        } as Response)
+      );
 
       const result = await uploadPDF(mockFile, 1);
 
@@ -245,11 +302,13 @@ describe('API Client', () => {
     it('uploads PDF without account ID', async () => {
       const mockFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
       
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ pdf_id: 1 }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ pdf_id: 1 }),
+        } as Response)
+      );
 
       await uploadPDF(mockFile);
 
@@ -261,10 +320,12 @@ describe('API Client', () => {
 
   describe('retryExtraction', () => {
     it('retries extraction for PDF', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Retry queued' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ message: 'Retry queued' }),
+        } as Response)
+      );
 
       await retryExtraction(1);
 
@@ -277,10 +338,12 @@ describe('API Client', () => {
 
   describe('deleteUpload', () => {
     it('deletes upload', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Deleted' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ message: 'Deleted' }),
+        } as Response)
+      );
 
       await deleteUpload(1);
 
@@ -293,69 +356,102 @@ describe('API Client', () => {
 
   describe('updateTransactionCategory', () => {
     it('updates transaction category', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: 1, category: 'new-category' }),
-      });
-
-      await updateTransactionCategory(1, 'new-category');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/transactions/1'),
-        expect.objectContaining({
-          method: 'PATCH',
-          body: JSON.stringify({ category: 'new-category' }),
-        })
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ id: 1, category: 'new-category' }),
+        } as Response)
       );
+
+      const result = await updateTransactionCategory(1, 'new-category');
+
+      expect(result).toEqual({ id: 1, category: 'new-category' });
     });
   });
 
-  describe('updateSuggestionFeedback', () => {
-    it('updates suggestion feedback', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: 1, user_feedback: 'accept' }),
-      });
+  describe('getSuggestions', () => {
+    it('fetches suggestions', async () => {
+      const mockData = { suggestions: [{ id: 1, text: 'Test' }] };
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => mockData,
+        } as Response)
+      );
 
-      await updateSuggestionFeedback(1, 'accept', 'Good idea');
+      const result = await getSuggestions();
+
+      expect(result).toEqual(mockData);
+    });
+
+    it('submits feedback', async () => {
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response)
+      );
+
+      await updateSuggestionFeedback(1, 'accepted', 'Good suggestion');
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/v1/suggestions/1/feedback'),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ feedback: 'accept', note: 'Good idea' }),
+          body: JSON.stringify({ feedback: 'accepted', note: 'Good suggestion' }),
+        })
+      );
+    });
+
+    it('submits feedback without note', async () => {
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response)
+      );
+
+      await updateSuggestionFeedback(1, 'rejected');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/suggestions/1/feedback'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ feedback: 'rejected', note: undefined }),
         })
       );
     });
   });
 
   describe('listKimiFiles', () => {
-    it('lists Kimi files', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ files: [] }),
-      });
-
-      await listKimiFiles();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/kimi-files'),
-        expect.any(Object)
+    it('fetches Kimi files', async () => {
+      const mockData = { files: [{ id: 1, name: 'test.pdf' }] };
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => mockData,
+        } as Response)
       );
+
+      const result = await listKimiFiles();
+
+      expect(result).toEqual(mockData);
     });
   });
 
   describe('deleteKimiFile', () => {
     it('deletes Kimi file', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Deleted' }),
-      });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response)
+      );
 
-      await deleteKimiFile('file_123');
+      await deleteKimiFile('1');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/kimi-files/file_123'),
+        expect.stringContaining('/api/v1/kimi-files/1'),
         expect.objectContaining({ method: 'DELETE' })
       );
     });

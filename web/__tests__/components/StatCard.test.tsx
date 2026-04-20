@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import StatCard from '../app/components/StatCard';
+import StatCard from '@components/StatCard';
 
 describe('StatCard', () => {
   it('renders title and value correctly', () => {
