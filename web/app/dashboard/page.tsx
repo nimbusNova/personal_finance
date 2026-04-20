@@ -6,6 +6,7 @@ import Navbar from '@/app/components/Navbar';
 import StatCard from '@/app/components/StatCard';
 import AllocationChart from '@/app/components/AllocationChart';
 import PdfViewerModal from '@/app/components/PdfViewerModal';
+import { StepDisplay } from '@/app/components/UploadsTable';
 import { usePrivacy } from '@/app/context/PrivacyContext';
 import { formatCurrencyPrivate } from '@/lib/formatters';
 import {
@@ -70,6 +71,7 @@ interface Upload {
   file_size: number;
   extraction_status: string;
   processing_step?: string;
+  error_message?: string;
   created_at: string;
 }
 
@@ -488,7 +490,7 @@ export default function DashboardPage() {
                             </td>
                             <td className="px-4 py-3 text-gray-400">{formatSize(u.file_size)}</td>
                             <td className="px-4 py-3">
-                              <StepDisplay status={u.extraction_status} step={u.processing_step} />
+                              <DashboardStepDisplay status={u.extraction_status} step={u.processing_step} error={u.error_message} />
                             </td>
                             <td className="px-4 py-3 text-gray-400">
                               {new Date(u.created_at).toLocaleDateString()}
@@ -528,24 +530,6 @@ export default function DashboardPage() {
   );
 }
 
-function StepDisplay({ status, step }: { status: string; step?: string }) {
-  const color =
-    status === 'completed'
-      ? 'text-green-400'
-      : status === 'failed'
-      ? 'text-red-400'
-      : status === 'processing'
-      ? 'text-yellow-400'
-      : 'text-gray-400';
-
-  const displayText = step || status;
-
-  return (
-    <div className="flex items-center gap-2">
-      {status === 'processing' && (
-        <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />
-      )}
-      <span className={`text-xs font-medium ${color}`}>{displayText}</span>
-    </div>
-  );
+function DashboardStepDisplay({ status, step, error }: { status: string; step?: string; error?: string }) {
+  return <StepDisplay status={status} step={step} error={error} showProgress={false} />;
 }

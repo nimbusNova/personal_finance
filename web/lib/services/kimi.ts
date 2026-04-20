@@ -1,6 +1,9 @@
 import { readFileSync } from 'fs';
 import { basename } from 'path';
 import { getKimiApiKey, getKimiBaseUrl } from './settings';
+import { createServerLogger } from '../server-logger';
+
+const log = createServerLogger('kimi');
 
 const KIMI_MODEL = process.env.KIMI_MODEL || 'moonshot-v1-128k';
 
@@ -62,10 +65,31 @@ Return only the JSON object, no markdown, no explanation.`;
 
 const JSON_REPAIR_PROMPT = `The text below was supposed to be valid JSON but failed to parse.
 Fix any syntax errors, remove any non-JSON text, and return ONLY valid JSON.
+IMPORTANT: remove trailing commas (commas before closing } or ]). This is the most common error.
 Do not add explanations, markdown, or commentary.
 
 Broken JSON:
 `;
+
+/**
+ * Fix common AI-generated JSON syntax errors before parsing.
+ * Primary fix: trailing commas (e.g. { "a": 1, } → { "a": 1 })
+ */
+function sanitizeJson(text: string): string {
+  // Remove trailing commas before } or ] — the #1 cause of AI JSON parse failures
+  return text.replace(/,\s*([\}\]])/g, '$1');
+}
+
+function extractErrorContext(text: string, errorMessage: string): string {
+  const match = errorMessage.match(/position\s+(\d+)/i);
+  if (!match) return text.slice(0, 500);
+  const pos = parseInt(match[1], 10);
+  const start = Math.max(0, pos - 200);
+  const end = Math.min(text.length, pos + 200);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < text.length ? '…' : '';
+  return `${prefix}${text.slice(start, end)}${suffix}\n\n^^^^ ERROR AROUND POSITION ${pos} ^^^^`;
+}
 
 export interface KimiResult {
   success: boolean;
@@ -86,20 +110,29 @@ class KimiService {
     this.apiKey = getKimiApiKey();
     this.baseUrl = getKimiBaseUrl();
     this.model = KIMI_MODEL;
-    console.log(`[kimi] Initialized: base_url=${this.baseUrl}, model=${this.model}, key_set=${this.apiKey ? 'yes' : 'no'}`);
+    log.info(`Initialized: base_url=${this.baseUrl}, model=${this.model}, key_set=${this.apiKey ? 'yes' : 'no'}`);
   }
 
-  async extractFromPdf(filePath: string, uploadId?: number): Promise<KimiResult> {
+  async extractFromPdf(filePath: string, uploadId?: number, onProgress?: (step: string) => void): Promise<KimiResult> {
+    onProgress?.('reading_pdf');
+    onProgress?.('reading_pdf');
     const { text: pdfText, source: textSource } = await this._getPdfText(filePath, uploadId);
+    log.debug(`PDF text source=${textSource}, length=${pdfText?.length || 0}`, pdfText?.slice(0, 500));
     if (!pdfText) return { success: false, error: 'Could not extract text from PDF' };
 
+    onProgress?.('classifying');
     const classification = await this.classifyDocument(pdfText, uploadId);
-    if (!classification.success) return { success: false, error: `Classification failed: ${classification.error}` };
+    if (!classification.success) {
+      log.error(`Classification failed for upload=${uploadId}: ${classification.error}`, classification.raw_response);
+      return { success: false, error: `Classification failed: ${classification.error}`, raw_response: classification.raw_response };
+    }
+    log.debug(`Classification result: doc_type=${classification.data?.doc_type}, institution=${classification.data?.institution}, confidence=${classification.data?.confidence}`);
 
     const docType = classification.data?.doc_type || 'unknown';
     const institution = classification.data?.institution || 'Unknown';
     const statementDate = classification.data?.statement_date;
 
+    onProgress?.('extracting');
     const extraction = await this.extractStructuredData(pdfText, docType, uploadId);
     if (extraction.success) {
       const data = extraction.data || {};
@@ -107,11 +140,14 @@ class KimiService {
       data.institution = data.institution || institution;
       data.statement_date = data.statement_date || statementDate;
       data.classification = classification.data;
-      return { success: true, data };
+      log.debug(`Extraction success: model=${extraction.model}, usage=${JSON.stringify(extraction.usage)}, confidence=${extraction.confidence}`);
+      return { success: true, data, raw_response: extraction.raw_response };
     }
+    log.warn(`Extraction failed for upload=${uploadId}: ${extraction.error}`, extraction.raw_response);
 
     const raw = extraction.raw_response;
     if (raw) {
+      onProgress?.('repairing_json');
       const repair = await this.repairJson(raw, uploadId);
       if (repair.success) {
         const data = repair.data || {};
@@ -119,11 +155,13 @@ class KimiService {
         data.institution = data.institution || institution;
         data.statement_date = data.statement_date || statementDate;
         data.classification = classification.data;
-        return { success: true, data };
+        log.info(`JSON repair succeeded for upload=${uploadId}`);
+        return { success: true, data, raw_response: repair.raw_response };
       }
+      log.error(`JSON repair failed for upload=${uploadId}: ${repair.error}`, repair.raw_response);
     }
 
-    return { success: false, error: `All extraction stages failed. Last error: ${extraction.error}` };
+    return { success: false, error: `All extraction stages failed. Last error: ${extraction.error}`, raw_response: extraction.raw_response };
   }
 
   private async _getPdfText(filePath: string, uploadId?: number): Promise<{ text: string; source: string }> {
@@ -136,7 +174,7 @@ class KimiService {
         if (text && text.length > 50) return { text, source: 'kimi_file_extract' };
       }
     } catch (exc: any) {
-      console.log(`[kimi][upload=${uploadId}] File-upload error: ${exc.message}`);
+      log.warn(`File-upload error for upload=${uploadId}: ${exc.message}`);
     } finally {
       if (fileId) await this._deleteFile(fileId, uploadId);
     }
@@ -147,7 +185,7 @@ class KimiService {
       const result = await pdfParse(buffer);
       if (result.text) return { text: result.text, source: 'pdf-parse' };
     } catch (exc: any) {
-      console.log(`[kimi][upload=${uploadId}] pdf-parse error: ${exc.message}`);
+      log.warn(`pdf-parse error for upload=${uploadId}: ${exc.message}`);
     }
 
     return { text: '', source: 'none' };
@@ -231,7 +269,7 @@ class KimiService {
         headers: { Authorization: `Bearer ${this.apiKey}` },
       });
     } catch (exc: any) {
-      console.log(`[kimi][upload=${uploadId}] Failed to delete file: ${exc.message}`);
+      log.warn(`Failed to delete file for upload=${uploadId}: ${exc.message}`);
     }
   }
 
@@ -253,11 +291,24 @@ class KimiService {
       try {
         if (content.includes('```json')) content = content.split('```json')[1].split('```')[0];
         else if (content.includes('```')) content = content.split('```')[1].split('```')[0];
-        const stripped = content.trim();
+        let stripped = content.trim();
         if (!stripped) return { success: false, error: 'Empty response content', raw_response: content };
+
+        // Try sanitized version first (fixes trailing commas, etc.)
+        const sanitized = sanitizeJson(stripped);
+        try {
+          const extractedData = JSON.parse(sanitized);
+          log.debug(`JSON sanitization fixed parse errors for upload=${uploadId}`);
+          return { success: true, data: extractedData, raw_response: content, confidence: extractedData.extraction_confidence || 0.5, model: result.model || 'unknown', usage: result.usage || {} };
+        } catch {
+          // Sanitization didn't help — fall through to normal error handling
+        }
+
         const extractedData = JSON.parse(stripped);
         return { success: true, data: extractedData, raw_response: content, confidence: extractedData.extraction_confidence || 0.5, model: result.model || 'unknown', usage: result.usage || {} };
       } catch (exc: any) {
+        const context = extractErrorContext(content, exc.message);
+        log.error(`JSON parse failed for upload=${uploadId}: ${exc.message}\n\nError context:\n${context}`, content);
         return { success: false, error: `Failed to parse JSON: ${exc.message}`, raw_response: content };
       }
     } catch (exc: any) {

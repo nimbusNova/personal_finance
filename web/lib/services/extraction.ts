@@ -3,14 +3,25 @@ import { db } from '../db/client';
 import * as schema from '../db/schema';
 import { getKimiService } from './kimi';
 import type { KimiResult } from './kimi';
+import { createServerLogger } from '../server-logger';
+
+const log = createServerLogger('extract');
 
 const HOLDINGS_VALUE_TOLERANCE = 0.01;
+const MAX_RAW_LOG = 10000;
+
+function reportStep(pdfId: number, step: string) {
+  db.update(schema.pdfs)
+    .set({ processingStep: step })
+    .where(eq(schema.pdfs.id, pdfId))
+    .run();
+}
 
 export async function processPdfExtraction(pdfId: number, filePath: string): Promise<void> {
-  console.log(`[extract][${pdfId}] Starting extraction: ${filePath}`);
+  log.info(`[${pdfId}] Starting extraction: ${filePath}`);
 
   db.update(schema.pdfs)
-    .set({ extractionStatus: 'processing', processedAt: new Date() })
+    .set({ extractionStatus: 'processing', processingStep: 'reading_pdf', processedAt: new Date() })
     .where(eq(schema.pdfs.id, pdfId))
     .run();
 
@@ -21,10 +32,10 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
 
   try {
     const service = getKimiService();
-    const result: KimiResult = await service.extractFromPdf(filePath, pdfId);
+    const result: KimiResult = await service.extractFromPdf(filePath, pdfId, (step) => reportStep(pdfId, step));
 
     if (!result.success) {
-      markFailed(pdfId, jobId, result.error || 'Unknown extraction error');
+      markFailed(pdfId, jobId, result.error || 'Unknown extraction error', result.raw_response);
       return;
     }
 
@@ -37,16 +48,19 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
       .where(eq(schema.pdfs.id, pdfId))
       .run();
 
+    reportStep(pdfId, 'validating');
     const validationErrors = validateExtraction(extracted, docType);
     if (validationErrors.length > 0) {
+      log.warn(`[${pdfId}] Validation failed: ${validationErrors.join('; ')}`);
       markFailed(pdfId, jobId, `Validation failed: ${validationErrors.join('; ')}`);
       return;
     }
 
+    reportStep(pdfId, 'persisting');
     persistExtraction(pdfId, extracted);
 
     db.update(schema.pdfs)
-      .set({ extractionStatus: 'completed', processingStep: 'Completed', errorMessage: null })
+      .set({ extractionStatus: 'completed', processingStep: 'completed', errorMessage: null })
       .where(eq(schema.pdfs.id, pdfId))
       .run();
 
@@ -55,20 +69,26 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
       .where(eq(schema.extractionJobs.id, jobId))
       .run();
 
-    console.log(`[extract][${pdfId}] Completed successfully`);
+    log.info(`[${pdfId}] Completed successfully`);
   } catch (exc: any) {
-    console.log(`[extract][${pdfId}] Unexpected error: ${exc.message}`);
+    log.error(`[${pdfId}] Unexpected error: ${exc.message}`);
     markFailed(pdfId, jobId, exc.message);
   }
 }
 
-function markFailed(pdfId: number, jobId: number, message: string) {
+function markFailed(pdfId: number, jobId: number, message: string, rawResponse?: string) {
+  const step = db.select().from(schema.pdfs).where(eq(schema.pdfs.id, pdfId)).get()?.processingStep || 'unknown';
+  const rawSnippet = rawResponse ? rawResponse.slice(0, MAX_RAW_LOG) : undefined;
+
+  log.error(`[${pdfId}] Extraction failed at step=${step}: ${message}`, rawSnippet);
+
   db.update(schema.pdfs)
     .set({ extractionStatus: 'failed', processingStep: `Failed: ${message.slice(0, 200)}`, errorMessage: message.slice(0, 500) })
     .where(eq(schema.pdfs.id, pdfId))
     .run();
+
   db.update(schema.extractionJobs)
-    .set({ status: 'failed', errorDetails: { error: message }, completedAt: new Date() })
+    .set({ status: 'failed', errorDetails: { error: message, step, raw_response: rawSnippet }, completedAt: new Date() })
     .where(eq(schema.extractionJobs.id, jobId))
     .run();
 }
@@ -113,7 +133,7 @@ function persistExtraction(pdfId: number, data: any) {
   let institution = db.select().from(schema.institutions).where(eq(schema.institutions.name, institutionName)).get();
   if (!institution) {
     institution = db.insert(schema.institutions).values({ name: institutionName, type: docType || 'unknown' }).returning().get();
-    console.log(`[extract] Created institution: ${institutionName} (id=${institution.id})`);
+    log.info(`Created institution: ${institutionName} (id=${institution.id})`);
   }
 
   let account = db.select().from(schema.accounts)
@@ -135,7 +155,7 @@ function persistExtraction(pdfId: number, data: any) {
       accountNumberMasked: data.account_number ? data.account_number.slice(-4) : null,
       isActive: true,
     }).returning().get();
-    console.log(`[extract] Created account: ${accountType} (id=${account.id})`);
+    log.info(`Created account: ${accountType} (id=${account.id})`);
   }
 
   const pdf = db.select().from(schema.pdfs).where(eq(schema.pdfs.id, pdfId)).get();

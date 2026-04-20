@@ -9,6 +9,7 @@ export interface UploadItem {
   file_size: number;
   extraction_status: string;
   processing_step?: string;
+  error_message?: string;
   created_at: string;
 }
 
@@ -87,7 +88,11 @@ export default function UploadsTable({
                 )}
               </td>
               <td className="px-4 py-3">
-                <StepDisplay status={u.extraction_status} step={u.processing_step} />
+                <StepDisplay
+                  status={u.extraction_status}
+                  step={u.processing_step}
+                  error={u.error_message}
+                />
               </td>
               <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                 {new Date(u.created_at).toLocaleDateString()}
@@ -135,24 +140,81 @@ export default function UploadsTable({
   );
 }
 
-function StepDisplay({ status, step }: { status: string; step?: string }) {
+const STEP_MAP: Record<string, { label: string; pct: number }> = {
+  pending: { label: 'Waiting to start…', pct: 0 },
+  reading_pdf: { label: 'Reading PDF…', pct: 15 },
+  classifying: { label: 'Classifying document…', pct: 35 },
+  extracting: { label: 'Extracting data with AI…', pct: 55 },
+  repairing_json: { label: 'Repairing JSON…', pct: 70 },
+  validating: { label: 'Validating data…', pct: 80 },
+  persisting: { label: 'Saving to database…', pct: 90 },
+  completed: { label: 'Completed', pct: 100 },
+  failed: { label: 'Failed', pct: 0 },
+};
+
+function getStepInfo(step?: string, status?: string) {
+  const key = step || status || 'pending';
+  return STEP_MAP[key] || { label: key, pct: 0 };
+}
+
+function isInProgress(status: string, step?: string) {
+  if (status === 'processing') return true;
+  if (status === 'pending') return true;
+  const progressSteps = ['reading_pdf', 'classifying', 'extracting', 'repairing_json', 'validating', 'persisting'];
+  return progressSteps.includes(step || '');
+}
+
+export function StepDisplay({
+  status,
+  step,
+  error,
+  showProgress = true,
+}: {
+  status: string;
+  step?: string;
+  error?: string;
+  showProgress?: boolean;
+}) {
+  const info = getStepInfo(step, status);
+  const inProgress = isInProgress(status, step);
+
   const color =
     status === 'completed'
       ? 'text-green-400'
       : status === 'failed'
       ? 'text-red-400'
-      : status === 'processing'
+      : inProgress
       ? 'text-yellow-400'
       : 'text-gray-400';
 
-  const displayText = step || status;
+  const barColor =
+    status === 'completed'
+      ? 'bg-green-500'
+      : status === 'failed'
+      ? 'bg-red-500'
+      : 'bg-yellow-500';
 
   return (
-    <div className="flex items-center gap-2">
-      {status === 'processing' && (
-        <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />
+    <div className="flex flex-col gap-1 min-w-[180px]">
+      <div className="flex items-center gap-2">
+        {inProgress && (
+          <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
+        )}
+        <span className={`text-xs font-medium ${color}`}>{info.label}</span>
+      </div>
+      {showProgress && inProgress && info.pct > 0 && (
+        <div className="w-full bg-gray-700 rounded-full h-1.5">
+          <div
+            className={`${barColor} h-1.5 rounded-full transition-all duration-500`}
+            style={{ width: `${info.pct}%` }}
+          />
+        </div>
       )}
-      <span className={`text-xs font-medium ${color}`}>{displayText}</span>
+      {status === 'failed' && error && (
+        <p className="text-[10px] text-red-400/80 truncate" title={error}>
+          {error.length > 80 ? error.slice(0, 80) + '…' : error}
+        </p>
+      )}
     </div>
   );
 }

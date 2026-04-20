@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const pdfId = parseInt(params.id);
   const pdf = db.select().from(schema.pdfs).where(eq(schema.pdfs.id, pdfId)).get();
   if (!pdf) return notFoundResponse('PDF not found');
-  return jsonResponse({ id: pdf.id, account_id: pdf.accountId, original_filename: pdf.originalFilename, file_path: pdf.filePath, file_size: pdf.fileSize, doc_type: pdf.docType, extraction_status: pdf.extractionStatus, extraction_confidence: pdf.extractionConfidence, extracted_data: pdf.extractedData, error_message: pdf.errorMessage, created_at: pdf.createdAt });
+  return jsonResponse({ id: pdf.id, account_id: pdf.accountId, original_filename: pdf.originalFilename, file_path: pdf.filePath, file_size: pdf.fileSize, doc_type: pdf.docType, extraction_status: pdf.extractionStatus, processing_step: pdf.processingStep, extraction_confidence: pdf.extractionConfidence, extracted_data: pdf.extractedData, error_message: pdf.errorMessage, created_at: pdf.createdAt });
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
