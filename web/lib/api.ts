@@ -7,8 +7,7 @@ function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('token');
 }
-
-async function fetchApi(path: string, options: RequestInit = {}) {
+export async function fetchApi(path: string, options: RequestInit = {}) {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
