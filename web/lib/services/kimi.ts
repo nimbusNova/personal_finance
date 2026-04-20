@@ -101,6 +101,87 @@ export interface KimiResult {
   usage?: any;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableError(status: number, body: string): boolean {
+  if (status >= 500) return true;
+  if (status !== 429) return false;
+  // Moonshot 429 can mean rate limit (don't retry) or engine overloaded (retry)
+  try {
+    const parsed = JSON.parse(body);
+    const type = parsed?.error?.type || '';
+    return type === 'engine_overloaded_error';
+  } catch {
+    // If we can't parse, be conservative and retry on 429
+    return true;
+  }
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  uploadId?: number,
+  maxRetries = 4,
+  timeoutMs = 120000
+): Promise<Response> {
+  let lastError = '';
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const start = Date.now();
+      log.info(`Sending request for upload=${uploadId}, attempt=${attempt}, timeout=${timeoutMs}ms`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const elapsed = Date.now() - start;
+      log.info(`Response received for upload=${uploadId} in ${elapsed}ms, status=${response.status}`);
+
+      if (response.ok) {
+        if (attempt > 0) {
+          log.info(`Request succeeded for upload=${uploadId} after ${attempt} retry(s)`);
+        }
+        return response;
+      }
+
+      const errText = await response.text();
+      lastError = `HTTP ${response.status}: ${errText.slice(0, 500)}`;
+
+      if (!isRetryableError(response.status, errText)) {
+        // Non-retryable error — fail immediately
+        throw new Error(lastError);
+      }
+
+      if (attempt < maxRetries) {
+        const delay = 2000 * 2 ** attempt + Math.random() * 1000;
+        log.info(
+          `Retry ${attempt + 1}/${maxRetries} for upload=${uploadId}, waiting ${(delay / 1000).toFixed(1)}s (${lastError.slice(0, 120)})`
+        );
+        await sleep(delay);
+      }
+    } catch (exc: any) {
+      if (exc.name === 'AbortError') {
+        lastError = `Request timed out after ${timeoutMs}ms`;
+        log.error(`Timeout for upload=${uploadId}: ${lastError}`);
+      }
+      // Network-level errors (fetch threw) — retry those too
+      if (attempt < maxRetries) {
+        const delay = 2000 * 2 ** attempt + Math.random() * 1000;
+        log.info(
+          `Retry ${attempt + 1}/${maxRetries} for upload=${uploadId}, waiting ${(delay / 1000).toFixed(1)}s (network: ${exc.message})`
+        );
+        await sleep(delay);
+      } else {
+        throw exc;
+      }
+    }
+  }
+  throw new Error(lastError || 'Max retries exceeded');
+}
+
 class KimiService {
   apiKey: string;
   baseUrl: string;
@@ -275,18 +356,28 @@ class KimiService {
 
   private async _callChatCompletion(payload: any, uploadId?: number): Promise<KimiResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const bodySize = JSON.stringify(payload).length;
+      log.info(`_callChatCompletion for upload=${uploadId}, bodySize=${bodySize} chars, model=${payload.model}`);
+
+      const response = await fetchWithRetry(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      }, uploadId);
       if (!response.ok) {
+        // This path is unlikely now since fetchWithRetry throws on non-ok after retries,
+        // but keep it as a safety net.
         const errText = await response.text();
         return { success: false, error: `HTTP ${response.status}: ${errText.slice(0, 500)}` };
       }
+      log.info(`Parsing JSON response for upload=${uploadId}`);
       const result = await response.json();
+      log.info(`Response parsed for upload=${uploadId}, model=${result.model}, usage=${JSON.stringify(result.usage)}`);
+
       let content: string = result.choices?.[0]?.message?.content;
       if (!content) return { success: false, error: 'Unexpected response structure' };
+
+      log.info(`Extracting JSON from markdown for upload=${uploadId}, contentLength=${content.length}`);
 
       try {
         if (content.includes('```json')) content = content.split('```json')[1].split('```')[0];
@@ -298,13 +389,14 @@ class KimiService {
         const sanitized = sanitizeJson(stripped);
         try {
           const extractedData = JSON.parse(sanitized);
-          log.debug(`JSON sanitization fixed parse errors for upload=${uploadId}`);
+          log.info(`JSON parsed successfully for upload=${uploadId} (with sanitization)`);
           return { success: true, data: extractedData, raw_response: content, confidence: extractedData.extraction_confidence || 0.5, model: result.model || 'unknown', usage: result.usage || {} };
         } catch {
           // Sanitization didn't help — fall through to normal error handling
         }
 
         const extractedData = JSON.parse(stripped);
+        log.info(`JSON parsed successfully for upload=${uploadId}`);
         return { success: true, data: extractedData, raw_response: content, confidence: extractedData.extraction_confidence || 0.5, model: result.model || 'unknown', usage: result.usage || {} };
       } catch (exc: any) {
         const context = extractErrorContext(content, exc.message);
@@ -312,6 +404,7 @@ class KimiService {
         return { success: false, error: `Failed to parse JSON: ${exc.message}`, raw_response: content };
       }
     } catch (exc: any) {
+      log.error(`_callChatCompletion failed for upload=${uploadId}: ${exc.message}`);
       return { success: false, error: exc.message };
     }
   }
