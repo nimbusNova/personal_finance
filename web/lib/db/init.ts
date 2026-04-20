@@ -5,7 +5,6 @@ export function initDatabase() {
   const tableNames = new Set(tables.map((t) => t.name));
 
   if (tableNames.has('institutions')) {
-    console.log('[db] Tables already exist');
     return;
   }
 
