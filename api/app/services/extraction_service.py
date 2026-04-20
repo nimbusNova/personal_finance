@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from app.database.connection import get_session_maker
 from app.database.models import (
     PDF, ExtractionJob, Institution, Account,
-    PortfolioSnapshot, Holding, Transaction, User, AccountBalance
+    PortfolioSnapshot, Holding, Transaction, AccountBalance
 )
 from app.services.kimi_service import get_kimi_service
 from app.logging_config import get_upload_logger
@@ -37,7 +37,7 @@ def _set_step(db, pdf: PDF, step: str, upload_logger):
     upload_logger.info(f"Step: {step}")
 
 
-def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
+def process_pdf_extraction(pdf_id: int, file_path: str):
     """
     Background task: run full extraction pipeline for a single PDF.
     Creates its own DB session and handles all status transitions.
@@ -104,14 +104,8 @@ def process_pdf_extraction(pdf_id: int, file_path: str, user_id: int):
 
         # Normalize and persist
         _set_step(db, pdf, "Saving to database", upload_logger)
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            upload_logger.error(f"User {user_id} not found during extraction")
-            _mark_failed(db, pdf, job, "User not found", upload_logger)
-            return
-
         try:
-            _persist_extraction(db, pdf, extracted, user_id, upload_logger)
+            _persist_extraction(db, pdf, extracted, upload_logger)
         except Exception as exc:
             upload_logger.error(f"Data persistence failed: {exc}", exc_info=True)
             _mark_failed(db, pdf, job, f"Persistence error: {exc}", upload_logger)
@@ -215,7 +209,7 @@ def _validate_extraction(data: Dict[str, Any], doc_type: Optional[str]) -> list:
     return errors
 
 
-def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload_logger):
+def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], upload_logger):
     """Persist validated extraction data into relational tables."""
     doc_type = data.get("doc_type", pdf.doc_type)
     institution_name = data.get("institution", "Unknown")
@@ -236,7 +230,6 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload
     # Find or create Account
     # First try exact name match
     account = db.query(Account).filter(
-        Account.user_id == user_id,
         Account.institution_id == institution.id,
         Account.name == account_type
     ).first()
@@ -245,7 +238,6 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload
     if not account and data.get("account_number"):
         masked = data["account_number"][-4:] if len(data["account_number"]) >= 4 else data["account_number"]
         account = db.query(Account).filter(
-            Account.user_id == user_id,
             Account.institution_id == institution.id,
             Account.account_number_masked == masked
         ).first()
@@ -254,7 +246,6 @@ def _persist_extraction(db, pdf: PDF, data: Dict[str, Any], user_id: int, upload
 
     if not account:
         account = Account(
-            user_id=user_id,
             institution_id=institution.id,
             name=account_type,
             account_type=doc_type or "unknown",

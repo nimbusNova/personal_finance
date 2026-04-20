@@ -12,10 +12,9 @@ from sqlalchemy.orm import sessionmaker
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.database.models import Base, User, Institution, Account
+from app.database.models import Base, Institution, Account
 from app.database import get_db
 from app.main import app
-from app.routers.auth import create_access_token, get_password_hash
 
 
 @pytest.fixture(scope="function")
@@ -96,32 +95,6 @@ def test_data_dir():
 
 
 @pytest.fixture(scope="function")
-def test_user(db_session):
-    """Create a test user for tests that need one"""
-    user = User(
-        email="test@example.com",
-        password_hash=get_password_hash("testpassword123")
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
-
-
-@pytest.fixture(scope="function")
-def auth_token(test_user):
-    """Generate JWT token for test user"""
-    return create_access_token({"sub": test_user.email})
-
-
-@pytest.fixture(scope="function")
-def authenticated_client(client, auth_token):
-    """Test client with authentication header"""
-    client.headers["Authorization"] = f"Bearer {auth_token}"
-    return client
-
-
-@pytest.fixture(scope="function")
 def test_institution(db_session):
     """Create a test institution"""
     institution = Institution(
@@ -135,10 +108,9 @@ def test_institution(db_session):
 
 
 @pytest.fixture(scope="function")
-def test_account(db_session, test_user, test_institution):
-    """Create a test account for the test user"""
+def test_account(db_session, test_institution):
+    """Create a test account"""
     account = Account(
-        user_id=test_user.id,
         institution_id=test_institution.id,
         name="Test Checking",
         account_type="checking",

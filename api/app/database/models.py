@@ -11,20 +11,6 @@ from sqlalchemy.orm import relationship, sessionmaker
 Base = declarative_base()
 
 
-class User(Base):
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True)
-    email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    accounts = relationship("Account", back_populates="user")
-    life_stage_profiles = relationship("LifeStageProfile", back_populates="user")
-
-
 class Institution(Base):
     __tablename__ = "institutions"
     
@@ -42,11 +28,10 @@ class Account(Base):
     __tablename__ = "accounts"
     
     __table_args__ = (
-        UniqueConstraint('user_id', 'institution_id', 'name', name='uix_account_user_institution_name'),
+        UniqueConstraint('institution_id', 'name', name='uix_account_institution_name'),
     )
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     institution_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
     name = Column(String(100), nullable=False)
     account_type = Column(String(50))  # 401k, IRA, taxable, checking, etc
@@ -55,7 +40,6 @@ class Account(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="accounts")
     institution = relationship("Institution", back_populates="accounts")
     pdfs = relationship("PDF", back_populates="account")
     snapshots = relationship("PortfolioSnapshot", back_populates="account")
@@ -66,7 +50,6 @@ class LifeStageProfile(Base):
     __tablename__ = "life_stage_profiles"
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     age = Column(Integer)
     annual_income = Column(Numeric(12, 2))
     risk_tolerance = Column(Integer)  # 1-10 scale
@@ -79,7 +62,6 @@ class LifeStageProfile(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="life_stage_profiles")
     suggestions = relationship("AISuggestion", back_populates="life_stage_profile")
 
 

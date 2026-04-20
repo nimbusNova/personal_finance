@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, upload, health, holdings, transactions, suggestions, accounts, kimi_files
+from app.routers import upload, health, holdings, transactions, suggestions, accounts, kimi_files, settings as settings_router
 from app.database.connection import init_db
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware
@@ -35,7 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(settings_router.router, prefix="/api/v1", tags=["settings"])
 app.include_router(upload.router, prefix="/api/v1", tags=["upload"])
 app.include_router(holdings.router, prefix="/api/v1", tags=["holdings"])
 app.include_router(transactions.router, prefix="/api/v1", tags=["transactions"])

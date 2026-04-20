@@ -9,20 +9,20 @@ from app.database.models import LifeStageProfile, AISuggestion
 class TestSuggestionsRouterAuthenticated:
     """Tests for suggestions router with authentication"""
     
-    def test_get_suggestions_empty(self, authenticated_client, test_user):
+    def test_get_suggestions_empty(self, client):
         """Test getting suggestions when user has none"""
         # Need to create a life stage profile first
-        response = authenticated_client.get("/api/v1/suggestions")
+        response = client.get("/api/v1/suggestions")
         
         assert response.status_code == 200
         data = response.json()
         assert "suggestions" in data
         assert data["suggestions"] == []
     
-    def test_get_suggestions_active_only(self, authenticated_client, test_user, db_session):
+    def test_get_suggestions_active_only(self, client, db_session):
         """Test default is_active=true filter returns only active suggestions"""
         # Create life stage profile
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -49,16 +49,16 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add_all([active, inactive])
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/suggestions?is_active=true")
+        response = client.get("/api/v1/suggestions?is_active=true")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data["suggestions"]) == 1
         assert data["suggestions"][0]["suggestion_type"] == "rebalance"
     
-    def test_get_suggestions_inactive(self, authenticated_client, test_user, db_session):
+    def test_get_suggestions_inactive(self, client, db_session):
         """Test is_active=false returns dismissed suggestions"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -82,16 +82,16 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add_all([active, inactive])
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/suggestions?is_active=false")
+        response = client.get("/api/v1/suggestions?is_active=false")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data["suggestions"]) == 1
         assert data["suggestions"][0]["suggestion_type"] == "tax_loss"
     
-    def test_get_suggestions_with_data(self, authenticated_client, test_user, db_session):
+    def test_get_suggestions_with_data(self, client, db_session):
         """Test suggestions return full objects with all fields"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -110,7 +110,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(suggestion)
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/suggestions")
+        response = client.get("/api/v1/suggestions")
         
         assert response.status_code == 200
         data = response.json()
@@ -125,11 +125,11 @@ class TestSuggestionsRouterAuthenticated:
         assert s["priority"] == "high"
         assert s["is_active"] is True
     
-    def test_get_suggestions_sorts_by_created_desc(self, authenticated_client, test_user, db_session):
+    def test_get_suggestions_sorts_by_created_desc(self, client, db_session):
         """Test suggestions sorted by created_at desc"""
         import time
         
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -157,7 +157,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(new)
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/suggestions")
+        response = client.get("/api/v1/suggestions")
         
         assert response.status_code == 200
         data = response.json()
@@ -165,9 +165,9 @@ class TestSuggestionsRouterAuthenticated:
         # Newest first
         assert data["suggestions"][0]["suggestion_type"] == "new"
     
-    def test_update_suggestion_feedback_accept(self, authenticated_client, test_user, db_session):
+    def test_update_suggestion_feedback_accept(self, client, db_session):
         """Test accepting a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -182,7 +182,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(suggestion)
         db_session.commit()
         
-        response = authenticated_client.post(
+        response = client.post(
             f"/api/v1/suggestions/{suggestion.id}/feedback",
             json={"feedback": "accept", "note": "Will do this today"}
         )
@@ -193,9 +193,9 @@ class TestSuggestionsRouterAuthenticated:
         assert data["suggestion"]["user_note"] == "Will do this today"
         assert data["suggestion"]["is_active"] is False
     
-    def test_update_suggestion_feedback_reject(self, authenticated_client, test_user, db_session):
+    def test_update_suggestion_feedback_reject(self, client, db_session):
         """Test rejecting a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -210,7 +210,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(suggestion)
         db_session.commit()
         
-        response = authenticated_client.post(
+        response = client.post(
             f"/api/v1/suggestions/{suggestion.id}/feedback",
             json={"feedback": "reject", "note": "Not applicable"}
         )
@@ -220,9 +220,9 @@ class TestSuggestionsRouterAuthenticated:
         assert data["suggestion"]["user_feedback"] == "reject"
         assert data["suggestion"]["is_active"] is False
     
-    def test_update_suggestion_feedback_snooze(self, authenticated_client, test_user, db_session):
+    def test_update_suggestion_feedback_snooze(self, client, db_session):
         """Test snoozing a suggestion"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -237,7 +237,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add(suggestion)
         db_session.commit()
         
-        response = authenticated_client.post(
+        response = client.post(
             f"/api/v1/suggestions/{suggestion.id}/feedback",
             json={"feedback": "snooze"}
         )
@@ -248,50 +248,20 @@ class TestSuggestionsRouterAuthenticated:
         # Snoozed suggestions should still be active
         assert data["suggestion"]["is_active"] is True
     
-    def test_update_suggestion_not_found(self, authenticated_client):
+    def test_update_suggestion_not_found(self, client):
         """Test 404 for non-existent suggestion"""
-        response = authenticated_client.post(
+        response = client.post(
             "/api/v1/suggestions/99999/feedback",
             json={"feedback": "accept"}
         )
         
         assert response.status_code == 404
     
-    def test_update_suggestion_unauthorized(self, authenticated_client, db_session):
-        """Test can't update other user's suggestion"""
-        from app.database.models import User
-        from app.routers.auth import get_password_hash
-        
-        # Create another user with suggestion
-        other_user = User(email="other@example.com", password_hash=get_password_hash("pass"))
-        db_session.add(other_user)
-        db_session.flush()
-        
-        other_profile = LifeStageProfile(user_id=other_user.id, age=35, risk_tolerance=7)
-        db_session.add(other_profile)
-        db_session.flush()
-        
-        other_suggestion = AISuggestion(
-            life_stage_profile_id=other_profile.id,
-            suggestion_type="rebalance",
-            action_json='{}',
-            reasoning_text="Drifted",
-            confidence_score=0.85,
-            is_active=True
-        )
-        db_session.add(other_suggestion)
-        db_session.commit()
-        
-        response = authenticated_client.post(
-            f"/api/v1/suggestions/{other_suggestion.id}/feedback",
-            json={"feedback": "accept"}
-        )
-        
-        assert response.status_code == 404
+
     
-    def test_get_decision_trail(self, authenticated_client, test_user, db_session):
+    def test_get_decision_trail(self, client, db_session):
         """Test decision trail returns history of all suggestions"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -328,7 +298,7 @@ class TestSuggestionsRouterAuthenticated:
         db_session.add_all([accepted, rejected, active])
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/suggestions/decision-trail")
+        response = client.get("/api/v1/suggestions/decision-trail")
         
         assert response.status_code == 200
         data = response.json()
@@ -340,9 +310,9 @@ class TestSuggestionsRouterAuthenticated:
         assert "reject" in feedbacks
         assert None in feedbacks  # Active suggestion has no feedback
     
-    def test_suggestion_is_active_logic(self, authenticated_client, test_user, db_session):
+    def test_suggestion_is_active_logic(self, client, db_session):
         """Test that accept/reject sets is_active=false but snooze keeps it true"""
-        profile = LifeStageProfile(user_id=test_user.id, age=35, risk_tolerance=7)
+        profile = LifeStageProfile(age=35, risk_tolerance=7)
         db_session.add(profile)
         db_session.flush()
         
@@ -358,7 +328,7 @@ class TestSuggestionsRouterAuthenticated:
             db_session.add(suggestion)
             db_session.commit()
             
-            response = authenticated_client.post(
+            response = client.post(
                 f"/api/v1/suggestions/{suggestion.id}/feedback",
                 json={"feedback": feedback}
             )

@@ -1,18 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './context/AuthContext';
+import { getSettings } from '@/lib/api';
 
 export default function Home() {
-  const { user, isLoading } = useAuth();
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoading) {
-      router.push(user ? '/dashboard' : '/login');
-    }
-  }, [isLoading, user, router]);
+    getSettings()
+      .then((data) => {
+        if (data.user_name) {
+          router.push('/dashboard');
+        } else {
+          router.push('/welcome');
+        }
+      })
+      .catch(() => router.push('/welcome'))
+      .finally(() => setChecking(false));
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">

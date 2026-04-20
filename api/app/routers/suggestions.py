@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.database.models import AISuggestion, LifeStageProfile
-from app.routers.auth import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger("api.suggestions")
@@ -21,20 +20,17 @@ class SuggestionFeedback(BaseModel):
 @router.get("/suggestions")
 async def get_suggestions(
     is_active: Optional[bool] = True,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get AI suggestions"""
-    logger.debug(f"Get suggestions: user={current_user.email}, is_active={is_active}")
-    query = db.query(AISuggestion).join(LifeStageProfile).filter(
-        LifeStageProfile.user_id == current_user.id
-    )
+    logger.debug(f"Get suggestions: is_active={is_active}")
+    query = db.query(AISuggestion)
     
     if is_active is not None:
         query = query.filter(AISuggestion.is_active == is_active)
     
     suggestions = query.order_by(AISuggestion.created_at.desc()).all()
-    logger.info(f"Get suggestions returned: {len(suggestions)} records for user={current_user.email}")
+    logger.info(f"Get suggestions returned: {len(suggestions)} records")
     return {
         "suggestions": [
             {
@@ -59,18 +55,16 @@ async def get_suggestions(
 async def update_suggestion_feedback(
     suggestion_id: int,
     feedback: SuggestionFeedback,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Update suggestion with user feedback"""
-    logger.info(f"Update suggestion feedback: id={suggestion_id}, feedback={feedback.feedback}, user={current_user.email}")
-    suggestion = db.query(AISuggestion).join(LifeStageProfile).filter(
-        AISuggestion.id == suggestion_id,
-        LifeStageProfile.user_id == current_user.id
+    logger.info(f"Update suggestion feedback: id={suggestion_id}, feedback={feedback.feedback}")
+    suggestion = db.query(AISuggestion).filter(
+        AISuggestion.id == suggestion_id
     ).first()
     
     if not suggestion:
-        logger.warning(f"Suggestion not found: id={suggestion_id}, user={current_user.email}")
+        logger.warning(f"Suggestion not found: id={suggestion_id}")
         raise HTTPException(status_code=404, detail="Suggestion not found")
     
     suggestion.user_feedback = feedback.feedback
@@ -92,14 +86,9 @@ async def update_suggestion_feedback(
 
 
 @router.get("/suggestions/decision-trail")
-async def get_decision_trail(
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def get_decision_trail(db: Session = Depends(get_db)):
     """Get history of all suggestions and decisions"""
-    suggestions = db.query(AISuggestion).join(LifeStageProfile).filter(
-        LifeStageProfile.user_id == current_user.id
-    ).order_by(AISuggestion.created_at.desc()).all()
+    suggestions = db.query(AISuggestion).order_by(AISuggestion.created_at.desc()).all()
     
     return {
         "trail": [

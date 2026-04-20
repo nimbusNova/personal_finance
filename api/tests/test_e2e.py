@@ -12,51 +12,11 @@ from unittest.mock import patch, Mock
 
 from app.database import get_db, init_db
 from app.database.models import (
-    User, Institution, Account, PDF, 
+    Institution, Account, PDF, 
     PortfolioSnapshot, Holding, Transaction
 )
 from app.main import app
 
-
-@pytest.mark.e2e
-class TestUserOnboardingWorkflow:
-    """E2E test: Complete user onboarding flow"""
-    
-    def test_complete_onboarding_journey(self, client, db_session):
-        """
-        E2E: User signs up → creates profile → ready to use app
-        """
-        # 1. Register new user
-        register_response = client.post(
-            "/api/v1/auth/register",
-            json={"email": "newuser@example.com", "password": "SecurePass123!"}
-        )
-        
-        if register_response.status_code == 400:
-            # User might exist, that's ok for this test
-            pass
-        else:
-            assert register_response.status_code == 200
-            user_id = register_response.json()["user_id"]
-        
-        # 2. Login
-        login_response = client.post(
-            "/api/v1/auth/login",
-            data={"username": "newuser@example.com", "password": "SecurePass123!"}
-        )
-        
-        if login_response.status_code != 200:
-            pytest.skip("Login failed, skipping E2E test")
-        
-        token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # 3. Check user info
-        me_response = client.get("/api/v1/auth/me", headers=headers)
-        assert me_response.status_code == 200
-        assert me_response.json()["email"] == "newuser@example.com"
-        
-        print("✅ E2E Onboarding flow: Register → Login → Get Profile")
 
 
 @pytest.mark.e2e
@@ -93,11 +53,6 @@ class TestPDFUploadAndExtractionWorkflow:
             "confidence": 0.95
         }
         
-        # Create user and login
-        user = User(email="pdfuser@test.com", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-        
         # Create institution
         inst = Institution(name="Charles Schwab", type="brokerage")
         db_session.add(inst)
@@ -105,7 +60,6 @@ class TestPDFUploadAndExtractionWorkflow:
         
         # Create account
         account = Account(
-            user_id=user.id,
             institution_id=inst.id,
             name="Individual Taxable",
             account_type="taxable"
@@ -119,8 +73,7 @@ class TestPDFUploadAndExtractionWorkflow:
         with patch('app.services.pdf_service.get_pdf_storage_path', return_value=test_data_dir):
             upload_response = client.post(
                 f"/api/v1/upload?account_id={account.id}",
-                files={"file": ("statement.pdf", test_pdf_content, "application/pdf")},
-                headers={"Authorization": "Bearer fake_token"}  # Would need real token
+                files={"file": ("statement.pdf", test_pdf_content, "application/pdf")}
             )
             
             # Note: Auth might fail in test, but structure is tested
@@ -136,11 +89,6 @@ class TestPortfolioTrackingWorkflow:
         """
         E2E: Upload 3 months of statements → see portfolio changes over time
         """
-        # Create user
-        user = User(email="tracker@test.com", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-        
         # Create institution
         inst = Institution(name="Fidelity", type="brokerage")
         db_session.add(inst)
@@ -148,7 +96,6 @@ class TestPortfolioTrackingWorkflow:
         
         # Create account
         account = Account(
-            user_id=user.id,
             institution_id=inst.id,
             name="401k",
             account_type="401k"
@@ -221,14 +168,12 @@ class TestSpendingAnalysisWorkflow:
         """
         E2E: Upload credit card statements → get spending breakdown
         """
-        # Create user and account
-        user = User(email="spender@test.com", password_hash="hash")
+        # Create institution and account
         inst = Institution(name="Chase", type="credit_card")
-        db_session.add_all([user, inst])
+        db_session.add(inst)
         db_session.commit()
         
         account = Account(
-            user_id=user.id,
             institution_id=inst.id,
             name="Chase Sapphire",
             account_type="credit_card"
@@ -290,13 +235,8 @@ class TestAISuggestionWorkflow:
         """
         from app.database.models import AISuggestion, LifeStageProfile
         
-        # Create user with profile
-        user = User(email="suggestionuser@test.com", password_hash="hash")
-        db_session.add(user)
-        db_session.flush()
-        
+        # Create profile
         profile = LifeStageProfile(
-            user_id=user.id,
             age=35,
             annual_income=150000,
             risk_tolerance=7,
@@ -420,16 +360,15 @@ class TestDataExportWorkflow:
         """
         E2E: Export all data → verify JSON structure → check completeness
         """
-        # Create comprehensive user data
-        user = User(email="exportuser@test.com", password_hash="hash")
+        # Create comprehensive data
         inst1 = Institution(name="Schwab", type="brokerage")
         inst2 = Institution(name="Chase", type="credit_card")
-        db_session.add_all([user, inst1, inst2])
+        db_session.add_all([inst1, inst2])
         db_session.commit()
         
         # Create accounts
-        brokerage = Account(user_id=user.id, institution_id=inst1.id, name="Taxable", account_type="taxable")
-        credit = Account(user_id=user.id, institution_id=inst2.id, name="Sapphire", account_type="credit_card")
+        brokerage = Account(institution_id=inst1.id, name="Taxable", account_type="taxable")
+        credit = Account(institution_id=inst2.id, name="Sapphire", account_type="credit_card")
         db_session.add_all([brokerage, credit])
         db_session.commit()
         
@@ -477,7 +416,7 @@ class TestDataExportWorkflow:
         # Simulate export (would be actual export function in production)
         # Convert Decimal values to float for JSON serialization
         export_data = {
-            "user": {"email": user.email},
+            "app": {"name": "Portfolio Intelligence"},
             "accounts": [
                 {
                     "name": brokerage.name,
@@ -506,7 +445,7 @@ class TestDataExportWorkflow:
         }
         
         # Verify export structure
-        assert "user" in export_data
+        assert "app" in export_data
         assert "accounts" in export_data
         assert len(export_data["accounts"]) == 2
         assert "export_timestamp" in export_data
@@ -520,6 +459,6 @@ class TestDataExportWorkflow:
         assert os.path.exists(export_path)
         with open(export_path, 'r') as f:
             loaded = json.load(f)
-            assert loaded["user"]["email"] == user.email
+            assert loaded["app"]["name"] == "Portfolio Intelligence"
         
         print(f"✅ E2E Data Export: {len(export_data['accounts'])} accounts, JSON structure valid")

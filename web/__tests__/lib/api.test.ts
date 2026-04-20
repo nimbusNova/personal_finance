@@ -1,8 +1,8 @@
 import {
   fetchApi,
-  login,
-  register,
-  getMe,
+  getSettings,
+  updateSettings,
+  testApiKey,
   getPortfolioSummary,
   getHoldings,
   getTransactions,
@@ -32,20 +32,6 @@ jest.mock('../../lib/logger', () => ({
   }),
 }));
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-};
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
-
-// Mock window.location properly
-delete (window as any).location;
-window.location = { href: '', assign: jest.fn(), replace: jest.fn() } as any;
-
 // Mock fetch with default implementation
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -65,12 +51,10 @@ describe('API Client', () => {
         json: async () => ({}),
       } as Response)
     );
-    localStorageMock.getItem.mockReturnValue('test-token');
-    window.location.href = '';
   });
 
   describe('fetchApi', () => {
-    it('makes authenticated request with token', async () => {
+    it('makes request without auth headers', async () => {
       (global.fetch as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           ok: true,
@@ -84,25 +68,11 @@ describe('API Client', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/test'),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
           }),
         })
       );
-    });
-
-    it('redirects to login on 401', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-          json: async () => ({}),
-        } as Response)
-      );
-
-      await expect(fetchApi('/test')).rejects.toThrow('Unauthorized');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
-      // window.location.href is read-only in JSDOM, verify error thrown is sufficient
     });
 
     it('throws error with message from response', async () => {
@@ -132,45 +102,54 @@ describe('API Client', () => {
     });
   });
 
-  describe('login', () => {
-    it('stores token on successful login', async () => {
+  describe('getSettings', () => {
+    it('fetches settings', async () => {
+      const mockData = { user_name: 'Test', kimi_api_key: 'sk-123', has_api_key: true };
       (global.fetch as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           ok: true,
-          json: async () => ({ access_token: 'new-token', user: { id: 1 } }),
+          json: async () => mockData,
         } as Response)
       );
 
-      await login('test@example.com', 'password');
-
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'new-token');
-    });
-
-    it('throws error on failed login', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-          json: async () => ({ detail: 'Invalid credentials' }),
-        } as Response)
-      );
-
-      await expect(login('test@example.com', 'wrong')).rejects.toThrow('Invalid credentials');
+      const result = await getSettings();
+      expect(result).toEqual(mockData);
     });
   });
 
-  describe('register', () => {
-    it('registers new user', async () => {
+  describe('updateSettings', () => {
+    it('posts settings update', async () => {
+      const mockData = { user_name: 'Alice', kimi_api_key: 'sk-abc', has_api_key: true };
       (global.fetch as jest.Mock).mockImplementation(() =>
         Promise.resolve({
           ok: true,
-          json: async () => ({ id: 1, email: 'new@example.com' }),
+          json: async () => mockData,
         } as Response)
       );
 
-      const result = await register('new@example.com', 'password');
+      const result = await updateSettings('Alice', 'sk-abc');
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/settings'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ user_name: 'Alice', kimi_api_key: 'sk-abc' }),
+        })
+      );
+    });
+  });
 
-      expect(result).toEqual({ id: 1, email: 'new@example.com' });
+  describe('testApiKey', () => {
+    it('tests API key validity', async () => {
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ valid: true }),
+        } as Response)
+      );
+
+      const result = await testApiKey();
+      expect(result.valid).toBe(true);
     });
   });
 
@@ -185,7 +164,6 @@ describe('API Client', () => {
       );
 
       const result = await getPortfolioSummary();
-
       expect(result).toEqual(mockData);
     });
   });
@@ -243,7 +221,6 @@ describe('API Client', () => {
       );
 
       const result = await getTransactionSummary();
-
       expect(result).toEqual(mockData);
     });
   });

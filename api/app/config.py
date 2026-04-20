@@ -25,11 +25,6 @@ class Settings(BaseSettings):
     kimi_base_url: str = "https://api.moonshot.cn/v1"
     kimi_model: str = "moonshot-v1-128k"
     
-    # Auth
-    secret_key: str = "change-this-in-production"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

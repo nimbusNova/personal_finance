@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import ProtectedRoute from '@/app/components/ProtectedRoute';
 import Navbar from '@/app/components/Navbar';
 import { listKimiFiles, deleteKimiFile } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
@@ -104,7 +103,6 @@ export default function KimiFilesPage() {
   };
 
   return (
-    <ProtectedRoute>
       <div className="min-h-screen bg-gray-900">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -210,6 +208,5 @@ export default function KimiFilesPage() {
           )}
         </main>
       </div>
-    </ProtectedRoute>
   );
 }

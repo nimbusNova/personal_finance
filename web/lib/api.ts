@@ -3,19 +3,11 @@ import { createLogger } from './logger';
 const log = createLogger('api');
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('token');
-}
 export async function fetchApi(path: string, options: RequestInit = {}) {
-  const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const url = `${API_BASE_URL}${path}`;
   log.debug(`${options.method || 'GET'} ${url}`);
@@ -25,16 +17,8 @@ export async function fetchApi(path: string, options: RequestInit = {}) {
     headers,
   });
 
-  if (res.status === 401) {
-    log.warn(`Unauthorized: ${url}`);
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
-  }
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    // FastAPI validation errors return { detail: [{ msg: '...', loc: [...] }] }
     let message: string;
     if (Array.isArray(err.detail)) {
       message = err.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
@@ -51,39 +35,21 @@ export async function fetchApi(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-export async function login(email: string, password: string) {
-  log.info(`Login attempt: ${email}`);
-  const params = new URLSearchParams();
-  params.append('username', email);
-  params.append('password', password);
-
-  const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    log.error(`Login failed: ${err.detail || res.status}`);
-    throw new Error(err.detail || 'Login failed');
-  }
-
-  const data = await res.json();
-  localStorage.setItem('token', data.access_token);
-  log.info(`Login success: ${email}`);
-  return data;
+export async function getSettings() {
+  return fetchApi('/api/v1/settings');
 }
 
-export async function register(email: string, password: string) {
-  return fetchApi('/api/v1/auth/register', {
+export async function updateSettings(user_name: string, kimi_api_key: string) {
+  return fetchApi('/api/v1/settings', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ user_name, kimi_api_key }),
   });
 }
 
-export async function getMe() {
-  return fetchApi('/api/v1/auth/me');
+export async function testApiKey() {
+  return fetchApi('/api/v1/settings/test-key', {
+    method: 'POST',
+  });
 }
 
 export async function getPortfolioSummary() {
@@ -135,23 +101,14 @@ export async function updateSuggestionFeedback(id: number, feedback: string, not
 
 export async function uploadPDF(file: File, accountId?: number) {
   log.info(`Upload started: ${file.name}, size=${file.size}`);
-  const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
   if (accountId) formData.append('account_id', String(accountId));
 
   const res = await fetch(`${API_BASE_URL}/api/v1/upload`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,
   });
-
-  if (res.status === 401) {
-    log.warn('Upload unauthorized');
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
-  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

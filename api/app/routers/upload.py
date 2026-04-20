@@ -6,13 +6,11 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Backgro
 from fastapi.responses import FileResponse
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 from pydantic import BaseModel
 
 from app.config import get_settings
 from app.database import get_db
 from app.database.models import PDF, Account, PortfolioSnapshot, Holding, Transaction, AccountBalance, ExtractionJob, ManualCorrection
-from app.routers.auth import get_current_user
 from app.services.pdf_service import (
     generate_pdf_path,
     save_pdf_file,
@@ -30,19 +28,17 @@ async def upload_pdf(
     file: UploadFile = File(...),
     account_id: int = None,
     background_tasks: BackgroundTasks = None,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Upload a PDF statement to local storage and trigger background extraction"""
-    logger.info(f"Upload started: filename={file.filename}, account_id={account_id}, user={current_user.email}")
+    logger.info(f"Upload started: filename={file.filename}, account_id={account_id}")
     if not file.content_type or "pdf" not in file.content_type:
         logger.warning(f"Upload rejected: invalid content_type={file.content_type}")
         raise HTTPException(status_code=400, detail="Only PDF files allowed")
     
     if account_id:
         account = db.query(Account).filter(
-            Account.id == account_id,
-            Account.user_id == current_user.id
+            Account.id == account_id
         ).first()
         if not account:
             logger.warning(f"Upload rejected: account not found: {account_id}")
@@ -89,11 +85,11 @@ async def upload_pdf(
 
         upload_id = pdf.id
         upload_logger = get_upload_logger(logger, upload_id)
-        upload_logger.info(f"Upload complete: path={file_path}, user={current_user.email}")
+        upload_logger.info(f"Upload complete: path={file_path}")
         
         # Trigger background extraction
         if background_tasks is not None:
-            background_tasks.add_task(process_pdf_extraction, pdf.id, file_path, current_user.id)
+            background_tasks.add_task(process_pdf_extraction, pdf.id, file_path)
             upload_logger.info("Background extraction queued")
         
         return {
@@ -115,14 +111,13 @@ async def upload_pdf(
 async def upload_batch(
     files: List[UploadFile] = File(...),
     account_id: int = None,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Upload multiple PDFs at once"""
     results = []
     for file in files:
         try:
-            result = await upload_pdf(file, account_id, current_user, db)
+            result = await upload_pdf(file, account_id, db=db)
             results.append({"filename": file.filename, "status": "success", "data": result})
         except Exception as e:
             results.append({"filename": file.filename, "status": "error", "error": str(e)})
@@ -134,14 +129,11 @@ async def upload_batch(
 async def list_uploads(
     account_id: int = None,
     status: str = None,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """List uploaded PDFs for current user"""
-    logger.debug(f"List uploads: user={current_user.email}, account_id={account_id}, status={status}")
-    query = db.query(PDF).outerjoin(Account).filter(
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    )
+    """List uploaded PDFs"""
+    logger.debug(f"List uploads: account_id={account_id}, status={status}")
+    query = db.query(PDF)
     
     if account_id:
         query = query.filter(PDF.account_id == account_id)
@@ -149,7 +141,7 @@ async def list_uploads(
         query = query.filter(PDF.extraction_status == status)
     
     pdfs = query.order_by(PDF.created_at.desc()).all()
-    logger.info(f"List uploads returned: {len(pdfs)} records for user={current_user.email}")
+    logger.info(f"List uploads returned: {len(pdfs)} records")
     
     return {
         "uploads": [
@@ -171,7 +163,7 @@ async def list_uploads(
 
 
 @router.get("/uploads/stats")
-async def upload_stats(current_user = Depends(get_current_user)):
+async def upload_stats():
     """Get storage statistics"""
     return get_storage_stats()
 
@@ -179,14 +171,10 @@ async def upload_stats(current_user = Depends(get_current_user)):
 @router.get("/uploads/{pdf_id}")
 async def get_upload(
     pdf_id: int,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get a single PDF with extraction details"""
-    pdf = db.query(PDF).outerjoin(Account).filter(
-        PDF.id == pdf_id,
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    ).first()
+    pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
     
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
@@ -210,16 +198,12 @@ async def get_upload(
 async def retry_extraction(
     pdf_id: int,
     background_tasks: BackgroundTasks = None,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Retry extraction for a PDF"""
     upload_logger = get_upload_logger(logger, pdf_id)
-    upload_logger.info(f"Retry extraction requested: user={current_user.email}")
-    pdf = db.query(PDF).outerjoin(Account).filter(
-        PDF.id == pdf_id,
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    ).first()
+    upload_logger.info("Retry extraction requested")
+    pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
     
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
@@ -236,7 +220,7 @@ async def retry_extraction(
     db.commit()
     
     if background_tasks is not None:
-        background_tasks.add_task(process_pdf_extraction, pdf.id, pdf.file_path, current_user.id)
+        background_tasks.add_task(process_pdf_extraction, pdf.id, pdf.file_path)
         upload_logger.info("Background retry queued")
     
     return {
@@ -253,14 +237,10 @@ class ExtractedDataUpdate(BaseModel):
 @router.get("/uploads/{pdf_id}/file")
 async def get_pdf_file(
     pdf_id: int,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Download/serve the original PDF file"""
-    pdf = db.query(PDF).outerjoin(Account).filter(
-        PDF.id == pdf_id,
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    ).first()
+    pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
 
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
@@ -279,16 +259,12 @@ async def get_pdf_file(
 async def update_extracted_data(
     pdf_id: int,
     update: ExtractedDataUpdate,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Update extracted_data JSON for a PDF (manual correction)"""
     upload_logger = get_upload_logger(logger, pdf_id)
-    upload_logger.info(f"Update extracted data: user={current_user.email}")
-    pdf = db.query(PDF).outerjoin(Account).filter(
-        PDF.id == pdf_id,
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    ).first()
+    upload_logger.info("Update extracted data")
+    pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
 
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
@@ -309,16 +285,12 @@ async def update_extracted_data(
 @router.delete("/uploads/{pdf_id}")
 async def delete_upload(
     pdf_id: int,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Delete a PDF upload, its file on disk, and all derived data."""
     upload_logger = get_upload_logger(logger, pdf_id)
-    upload_logger.info(f"Delete upload requested: user={current_user.email}")
-    pdf = db.query(PDF).outerjoin(Account).filter(
-        PDF.id == pdf_id,
-        or_(Account.user_id == current_user.id, PDF.account_id.is_(None))
-    ).first()
+    upload_logger.info("Delete upload requested")
+    pdf = db.query(PDF).filter(PDF.id == pdf_id).first()
 
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")

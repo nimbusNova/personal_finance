@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import ProtectedRoute from '@/app/components/ProtectedRoute';
+import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import StatCard from '@/app/components/StatCard';
 import AllocationChart from '@/app/components/AllocationChart';
@@ -16,6 +16,7 @@ import {
   getTransactions,
   getTransactionSummary,
   retryExtraction,
+  getSettings,
 } from '@/lib/api';
 import {
   Wallet,
@@ -98,6 +99,13 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [selectedPdfId, setSelectedPdfId] = useState<number | null>(null);
   const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [hasApiKey, setHasApiKey] = useState(true);
+
+  useEffect(() => {
+    getSettings()
+      .then((data) => setHasApiKey(data.has_api_key))
+      .catch(() => setHasApiKey(true));
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -186,7 +194,6 @@ export default function DashboardPage() {
   const hasCcDebt = summary && (summary.credit_card_debt || 0) > 0;
 
   return (
-    <ProtectedRoute>
       <div className="min-h-screen bg-gray-900">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -201,6 +208,22 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
+              {/* API Key Banner */}
+              {!hasApiKey && (
+                <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-300 font-medium">No API key configured</p>
+                    <p className="text-xs text-yellow-400/80">
+                      PDF extraction requires a Kimi API key.{' '}
+                      <Link href="/settings" className="underline hover:text-yellow-300">
+                        Add one in Settings →
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Header */}
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-white mb-1">Dashboard</h1>
@@ -502,7 +525,6 @@ export default function DashboardPage() {
 
         <PdfViewerModal pdfId={selectedPdfId} onClose={() => setSelectedPdfId(null)} />
       </div>
-    </ProtectedRoute>
   );
 }
 

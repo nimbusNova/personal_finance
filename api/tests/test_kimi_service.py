@@ -18,12 +18,14 @@ from app.services.kimi_service import (
 class TestKimiService:
     """Tests for Kimi service"""
 
+    @patch("app.services.kimi_service.get_kimi_api_key")
     @patch("app.services.kimi_service.get_settings")
-    def test_init(self, mock_settings):
+    def test_init(self, mock_settings, mock_get_key):
         """Test Kimi service initialization"""
         mock_settings.return_value.kimi_api_key = "test_key"
         mock_settings.return_value.kimi_base_url = "https://test.api"
         mock_settings.return_value.kimi_model = "moonshot-v1-128k"
+        mock_get_key.return_value = "test_key"
 
         service = KimiService()
 

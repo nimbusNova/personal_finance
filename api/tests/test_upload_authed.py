@@ -12,11 +12,11 @@ class TestUploadRouterAuthenticated:
     """Tests for upload router with authentication"""
     
     @patch("app.routers.upload.process_pdf_extraction")
-    def test_upload_pdf_success(self, mock_process, authenticated_client, test_account):
+    def test_upload_pdf_success(self, mock_process, client, test_account):
         """Test successful PDF upload with account_id"""
         pdf_content = b"%PDF-1.4 fake pdf content"
         
-        response = authenticated_client.post(
+        response = client.post(
             "/api/v1/upload",
             data={"account_id": test_account.id},
             files={"file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")}
@@ -29,11 +29,11 @@ class TestUploadRouterAuthenticated:
         assert data["status"] == "pending_extraction"
     
     @patch("app.routers.upload.process_pdf_extraction")
-    def test_upload_pdf_without_account(self, mock_process, authenticated_client):
+    def test_upload_pdf_without_account(self, mock_process, client):
         """Test upload without account_id"""
         pdf_content = b"%PDF-1.4 fake pdf content"
         
-        response = authenticated_client.post(
+        response = client.post(
             "/api/v1/upload",
             files={"file": ("statement.pdf", io.BytesIO(pdf_content), "application/pdf")}
         )
@@ -42,11 +42,11 @@ class TestUploadRouterAuthenticated:
         data = response.json()
         assert data["message"] == "Upload successful"
     
-    def test_upload_pdf_wrong_content_type(self, authenticated_client):
+    def test_upload_pdf_wrong_content_type(self, client):
         """Test rejection of non-PDF files"""
         txt_content = b"This is not a PDF"
         
-        response = authenticated_client.post(
+        response = client.post(
             "/api/v1/upload",
             files={"file": ("document.txt", io.BytesIO(txt_content), "text/plain")}
         )
@@ -54,7 +54,7 @@ class TestUploadRouterAuthenticated:
         assert response.status_code == 400
         assert "Only PDF files allowed" in response.json()["detail"]
     
-    def test_get_upload(self, authenticated_client, test_account, db_session):
+    def test_get_upload(self, client, test_account, db_session):
         """Test getting a single PDF upload"""
         # Create a PDF
         pdf = PDF(
@@ -68,7 +68,7 @@ class TestUploadRouterAuthenticated:
         db_session.add(pdf)
         db_session.commit()
         
-        response = authenticated_client.get(f"/api/v1/uploads/{pdf.id}")
+        response = client.get(f"/api/v1/uploads/{pdf.id}")
         
         assert response.status_code == 200
         data = response.json()
@@ -77,39 +77,14 @@ class TestUploadRouterAuthenticated:
         assert data["extraction_status"] == "completed"
         assert data["extracted_data"]["doc_type"] == "bank_statement"
     
-    def test_get_upload_not_found(self, authenticated_client):
+    def test_get_upload_not_found(self, client):
         """Test 404 for non-existent upload"""
-        response = authenticated_client.get("/api/v1/uploads/99999")
-        
-        assert response.status_code == 404
-    
-    def test_get_upload_unauthorized(self, authenticated_client, db_session):
-        """Test can't see other user's upload"""
-        from app.database.models import User
-        from app.routers.auth import get_password_hash
-        
-        other_user = User(email="other@example.com", password_hash=get_password_hash("pass"))
-        db_session.add(other_user)
-        db_session.flush()
-        
-        other_inst = Institution(name="Other Bank", type="bank")
-        db_session.add(other_inst)
-        db_session.flush()
-        
-        other_account = Account(user_id=other_user.id, institution_id=other_inst.id, name="Other", account_type="checking")
-        db_session.add(other_account)
-        db_session.flush()
-        
-        other_pdf = PDF(account_id=other_account.id, original_filename="secret.pdf", file_path="/tmp/secret.pdf")
-        db_session.add(other_pdf)
-        db_session.commit()
-        
-        response = authenticated_client.get(f"/api/v1/uploads/{other_pdf.id}")
+        response = client.get("/api/v1/uploads/99999")
         
         assert response.status_code == 404
     
     @patch("app.routers.upload.process_pdf_extraction")
-    def test_retry_extraction_success(self, mock_process, authenticated_client, test_account, db_session, tmp_path):
+    def test_retry_extraction_success(self, mock_process, client, test_account, db_session, tmp_path):
         """Test retry extraction for failed upload"""
         import tempfile
         
@@ -128,7 +103,7 @@ class TestUploadRouterAuthenticated:
             db_session.add(pdf)
             db_session.commit()
             
-            response = authenticated_client.post(f"/api/v1/uploads/{pdf.id}/retry")
+            response = client.post(f"/api/v1/uploads/{pdf.id}/retry")
             
             assert response.status_code == 200
             data = response.json()
@@ -141,7 +116,7 @@ class TestUploadRouterAuthenticated:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
     
-    def test_list_user_uploads(self, authenticated_client, test_user, test_account, db_session):
+    def test_list_user_uploads(self, client, test_account, db_session):
         """Test listing user's uploads"""
         # Create multiple PDFs
         for i in range(3):
@@ -155,27 +130,27 @@ class TestUploadRouterAuthenticated:
             db_session.add(pdf)
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/uploads")
+        response = client.get("/api/v1/uploads")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data["uploads"]) == 3
     
-    def test_list_user_uploads_with_account_filter(self, authenticated_client, test_user, test_account, db_session):
+    def test_list_user_uploads_with_account_filter(self, client, test_account, db_session):
         """Test listing uploads filtered by account"""
         # Create PDFs for test_account
         pdf1 = PDF(account_id=test_account.id, original_filename="account1.pdf", file_path="/tmp/a1.pdf")
         db_session.add(pdf1)
         db_session.commit()
         
-        response = authenticated_client.get(f"/api/v1/uploads?account_id={test_account.id}")
+        response = client.get(f"/api/v1/uploads?account_id={test_account.id}")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data["uploads"]) == 1
         assert data["uploads"][0]["original_filename"] == "account1.pdf"
     
-    def test_list_user_uploads_with_status_filter(self, authenticated_client, test_user, test_account, db_session):
+    def test_list_user_uploads_with_status_filter(self, client, test_account, db_session):
         """Test filtering uploads by status"""
         # Create PDFs with different statuses
         pdf1 = PDF(account_id=test_account.id, original_filename="completed.pdf", file_path="/tmp/c.pdf", extraction_status="completed")
@@ -183,44 +158,15 @@ class TestUploadRouterAuthenticated:
         db_session.add_all([pdf1, pdf2])
         db_session.commit()
         
-        response = authenticated_client.get("/api/v1/uploads?status=completed")
+        response = client.get("/api/v1/uploads?status=completed")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data["uploads"]) == 1
         assert data["uploads"][0]["original_filename"] == "completed.pdf"
     
-    def test_list_user_uploads_isolation(self, authenticated_client, db_session):
-        """Test user only sees their own uploads"""
-        from app.database.models import User
-        from app.routers.auth import get_password_hash
-        
-        # Create another user with PDF
-        other_user = User(email="other2@example.com", password_hash=get_password_hash("pass"))
-        db_session.add(other_user)
-        db_session.flush()
-        
-        other_inst = Institution(name="Other2 Bank", type="bank")
-        db_session.add(other_inst)
-        db_session.flush()
-        
-        other_account = Account(user_id=other_user.id, institution_id=other_inst.id, name="Other", account_type="checking")
-        db_session.add(other_account)
-        db_session.flush()
-        
-        other_pdf = PDF(account_id=other_account.id, original_filename="other.pdf", file_path="/tmp/other.pdf")
-        db_session.add(other_pdf)
-        db_session.commit()
-        
-        response = authenticated_client.get("/api/v1/uploads")
-        
-        assert response.status_code == 200
-        data = response.json()
-        filenames = [u["original_filename"] for u in data["uploads"]]
-        assert "other.pdf" not in filenames
-    
     @patch("app.routers.upload.get_storage_stats")
-    def test_upload_stats(self, mock_stats, authenticated_client):
+    def test_upload_stats(self, mock_stats, client):
         """Test storage stats endpoint"""
         mock_stats.return_value = {
             "total_files": 10,
@@ -228,7 +174,7 @@ class TestUploadRouterAuthenticated:
             "storage_path": "/tmp/uploads"
         }
         
-        response = authenticated_client.get("/api/v1/uploads/stats")
+        response = client.get("/api/v1/uploads/stats")
         
         print(f"Response status: {response.status_code}")
         print(f"Response body: {response.text}")

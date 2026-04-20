@@ -1,4 +1,4 @@
-"""Accounts router — list all user accounts with latest balances."""
+"""Accounts router — list all accounts with latest balances."""
 import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -6,24 +6,19 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.database.models import Account, Institution, AccountBalance, PDF
-from app.routers.auth import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger("api.accounts")
 
 
 @router.get("/accounts")
-async def get_accounts(
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get all accounts for the current user with latest balances."""
-    logger.debug(f"Get accounts: user={current_user.email}")
+async def get_accounts(db: Session = Depends(get_db)):
+    """Get all accounts with latest balances."""
+    logger.debug("Get accounts")
 
     accounts = (
         db.query(Account, Institution)
         .join(Institution, Account.institution_id == Institution.id)
-        .filter(Account.user_id == current_user.id)
         .order_by(Account.created_at.desc())
         .all()
     )
@@ -66,5 +61,5 @@ async def get_accounts(
             }
 
     result = list(seen.values())
-    logger.info(f"Get accounts returned: {len(result)} records for user={current_user.email}")
+    logger.info(f"Get accounts returned: {len(result)} records")
     return {"accounts": result}

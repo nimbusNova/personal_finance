@@ -3,40 +3,10 @@ import pytest
 from datetime import datetime
 from decimal import Decimal
 from app.database.models import (
-    User, Institution, Account, LifeStageProfile,
+    Institution, Account, LifeStageProfile,
     PDF, PortfolioSnapshot, Holding, Transaction,
     AISuggestion, MonthlyReport
 )
-
-
-@pytest.mark.unit
-class TestUserModel:
-    """Tests for User model"""
-    
-    def test_create_user(self, db_session):
-        """Test creating a user"""
-        user = User(
-            email="test@example.com",
-            password_hash="hashed_password"
-        )
-        db_session.add(user)
-        db_session.commit()
-        
-        assert user.id is not None
-        assert user.email == "test@example.com"
-        assert user.created_at is not None
-    
-    def test_user_unique_email(self, db_session):
-        """Test that email must be unique"""
-        user1 = User(email="unique@example.com", password_hash="hash1")
-        db_session.add(user1)
-        db_session.commit()
-        
-        # Creating duplicate should raise error
-        user2 = User(email="unique@example.com", password_hash="hash2")
-        db_session.add(user2)
-        with pytest.raises(Exception):
-            db_session.commit()
 
 
 @pytest.mark.unit
@@ -64,14 +34,12 @@ class TestAccountModel:
     def test_create_account(self, db_session):
         """Test creating an account with relationships"""
         # Create dependencies
-        user = User(email="user@test.com", password_hash="hash")
         inst = Institution(name="Fidelity", type="brokerage")
-        db_session.add_all([user, inst])
+        db_session.add(inst)
         db_session.commit()
         
         # Create account
         account = Account(
-            user_id=user.id,
             institution_id=inst.id,
             name="Individual Taxable",
             account_type="taxable",
@@ -81,7 +49,6 @@ class TestAccountModel:
         db_session.commit()
         
         assert account.id is not None
-        assert account.user_id == user.id
         assert account.institution_id == inst.id
         assert account.is_active is True
 
@@ -262,12 +229,7 @@ class TestLifeStageProfileModel:
     
     def test_create_profile(self, db_session):
         """Test creating a life stage profile"""
-        user = User(email="profile@test.com", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-        
         profile = LifeStageProfile(
-            user_id=user.id,
             age=35,
             annual_income=150000.00,
             risk_tolerance=7,

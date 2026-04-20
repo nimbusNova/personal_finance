@@ -9,10 +9,7 @@ const log = createLogger('pdf-modal');
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function fetchPdfBlob(pdfId: number): Promise<Blob | null> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const res = await fetch(`${API_BASE_URL}/api/v1/uploads/${pdfId}/file`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+  const res = await fetch(`${API_BASE_URL}/api/v1/uploads/${pdfId}/file`);
   if (!res.ok) {
     throw new Error(`Failed to fetch PDF: ${res.status}`);
   }

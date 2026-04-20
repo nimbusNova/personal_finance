@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthContext';
 import { usePrivacy } from '@/app/context/PrivacyContext';
+import { getSettings } from '@/lib/api';
 import {
-  Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb, LogOut,
-  Eye, EyeOff, ChevronDown,
+  Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb,
+  Eye, EyeOff, ChevronDown, Settings, User,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -30,10 +30,16 @@ const dashboardSubItems = [
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashOpen, setDashOpen] = useState(false);
+  const [userName, setUserName] = useState('');
   const dashRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const { logout } = useAuth();
   const { showAmounts, togglePrivacy } = usePrivacy();
+
+  useEffect(() => {
+    getSettings()
+      .then((data) => setUserName(data.user_name || ''))
+      .catch(() => setUserName(''));
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -121,19 +127,25 @@ export default function Navbar() {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
+            {userName && (
+              <span className="text-sm text-gray-400 mr-2 flex items-center gap-1">
+                <User className="w-4 h-4" />
+                Welcome, {userName}
+              </span>
+            )}
+            <Link
+              href="/settings"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </Link>
             <button
               onClick={togglePrivacy}
               className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
               title={showAmounts ? 'Hide amounts' : 'Show amounts'}
             >
               {showAmounts ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={logout}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
             </button>
           </div>
           <div className="md:hidden">
@@ -194,16 +206,14 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                logout();
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
+            <Link
+              href="/settings"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
             >
-              <LogOut className="w-5 h-5" />
-              Logout
-            </button>
+              <Settings className="w-5 h-5" />
+              Settings
+            </Link>
           </div>
         </div>
       )}

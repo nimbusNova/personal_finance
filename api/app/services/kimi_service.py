@@ -14,6 +14,7 @@ from PyPDF2 import PdfReader
 
 from app.config import get_settings
 from app.logging_config import get_upload_logger
+from app.services.settings_service import get_kimi_api_key
 
 logger = logging.getLogger("api.kimi")
 
@@ -119,7 +120,7 @@ class KimiService:
 
     def __init__(self):
         settings = get_settings()
-        self.api_key = settings.kimi_api_key
+        self.api_key = get_kimi_api_key()
         self.base_url = settings.kimi_base_url
         self.model = settings.kimi_model
         logger.info(

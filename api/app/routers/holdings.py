@@ -7,7 +7,6 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.database.models import Holding, PortfolioSnapshot, Account, AccountBalance, Institution
-from app.routers.auth import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger("api.holdings")
@@ -17,7 +16,6 @@ logger = logging.getLogger("api.holdings")
 async def get_holdings(
     snapshot_id: Optional[int] = None,
     account_id: Optional[int] = None,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get holdings - filtered by snapshot or account.
@@ -25,10 +23,8 @@ async def get_holdings(
     weight_pct is recalculated against the total market value of all returned holdings
     so that it reflects portfolio-wide weights, not per-account weights.
     """
-    logger.debug(f"Get holdings: user={current_user.email}, snapshot_id={snapshot_id}, account_id={account_id}")
-    query = db.query(Holding).join(PortfolioSnapshot).join(Account).filter(
-        Account.user_id == current_user.id
-    )
+    logger.debug(f"Get holdings: snapshot_id={snapshot_id}, account_id={account_id}")
+    query = db.query(Holding).join(PortfolioSnapshot).join(Account)
     
     if snapshot_id:
         query = query.filter(Holding.snapshot_id == snapshot_id)
@@ -40,7 +36,7 @@ async def get_holdings(
     # Recalculate weight_pct against total market value of all returned holdings
     total_mv = sum(float(h.market_value or 0) for h in holdings)
     
-    logger.info(f"Get holdings returned: {len(holdings)} records, total_mv={total_mv} for user={current_user.email}")
+    logger.info(f"Get holdings returned: {len(holdings)} records, total_mv={total_mv}")
     return {
         "holdings": [
             {
@@ -65,17 +61,12 @@ async def get_holdings(
 
 
 @router.get("/holdings/latest")
-async def get_latest_holdings(
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def get_latest_holdings(db: Session = Depends(get_db)):
     """Get most recent holdings across all accounts"""
     # Get latest snapshot per account
     latest_snapshots = db.query(
         PortfolioSnapshot.account_id,
         func.max(PortfolioSnapshot.statement_date).label('latest_date')
-    ).join(Account).filter(
-        Account.user_id == current_user.id
     ).group_by(PortfolioSnapshot.account_id).subquery()
     
     snapshots = db.query(PortfolioSnapshot).join(
@@ -103,18 +94,13 @@ async def get_latest_holdings(
 
 
 @router.get("/portfolio/summary")
-async def get_portfolio_summary(
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def get_portfolio_summary(db: Session = Depends(get_db)):
     """Get portfolio summary (total AUM, allocation, etc) including bank and credit card balances."""
-    logger.debug(f"Get portfolio summary: user={current_user.email}")
+    logger.debug("Get portfolio summary")
     # Get latest snapshots per account (brokerage only)
     latest_snapshots = db.query(
         PortfolioSnapshot.account_id,
         func.max(PortfolioSnapshot.statement_date).label('latest_date')
-    ).join(Account).filter(
-        Account.user_id == current_user.id
     ).group_by(PortfolioSnapshot.account_id).subquery()
     
     snapshots = db.query(PortfolioSnapshot).join(
@@ -153,11 +139,10 @@ async def get_portfolio_summary(
     else:
         allocation_pct = {}
     
-    # Get all user accounts with latest balances
+    # Get all accounts with latest balances
     accounts = (
         db.query(Account, Institution)
         .join(Institution, Account.institution_id == Institution.id)
-        .filter(Account.user_id == current_user.id)
         .all()
     )
     
@@ -194,7 +179,7 @@ async def get_portfolio_summary(
     account_count = len(accounts)
     
     latest_dates = [s.statement_date for s in snapshots]
-    for ab in db.query(AccountBalance).join(Account).filter(Account.user_id == current_user.id).all():
+    for ab in db.query(AccountBalance).all():
         if ab.statement_date:
             latest_dates.append(ab.statement_date)
     
@@ -211,7 +196,6 @@ async def get_portfolio_summary(
         "accounts": account_summaries,
     }
     logger.info(
-        f"Portfolio summary for {current_user.email}: "
-        f"total={total_value}, brokerage={brokerage_total}, bank={bank_total}, cc_debt={cc_debt}, accounts={account_count}"
+        f"Portfolio summary: total={total_value}, brokerage={brokerage_total}, bank={bank_total}, cc_debt={cc_debt}, accounts={account_count}"
     )
     return result
