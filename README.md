@@ -12,53 +12,236 @@
 [![Kimi](https://img.shields.io/badge/Kimi_AI-8B5CF6?style=for-the-badge&logo=openai&logoColor=white)](https://www.moonshot.cn/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
+**PDF-first portfolio tracking with AI-powered suggestions.**  
+*Runs locally on your machine with a FastAPI backend and Next.js frontend.*
+
+[Quick Start](#quick-start) • [Features](#features) • [Architecture](#architecture) • [Documentation](#documentation) • [Contributing](#contributing)
+
 </div>
 
-PDF-first portfolio tracking with AI-powered suggestions. Runs locally on your machine with a FastAPI backend and Next.js frontend.
+---
 
-## Quick Start
+## 🌟 Features
 
-**Requirements:** Bun, Python 3.11+
+### 📊 Portfolio Intelligence
+- **Unified Net Worth View** — Aggregate holdings across all brokers, banks, and credit cards in one dashboard
+- **PDF-First Data Ingestion** — Upload brokerage, bank, and credit card statements; Kimi AI parses them into structured data
+- **Diversity & Risk Analysis** — Understand concentration risk by asset class, sector, geography, and individual position
+- **Portfolio Snapshots** — Track your portfolio's evolution over time with point-in-time records
+
+### 🤖 AI-Powered Suggestions
+- **Explainable Recommendations** — Every suggestion includes detailed reasoning (market context, life-stage fit, tax implications)
+- **Life-Stage Adaptive** — The AI adjusts recommendations based on your age, income, risk tolerance, and goals
+- **Decision Trail** — Persistent record of AI suggestions, your feedback, and outcomes
+
+### 💰 Spending Analysis
+- **Transaction Categorization** — Automatic categorization from credit card and bank statements
+- **Recurring Charge Detection** — Identify subscriptions and recurring payments
+- **Expense Analysis** — Track spending patterns and expensive transactions
+
+### 📈 Monthly Reports
+- **Beautiful Dashboard** — Interactive monthly report summarizing portfolio changes, spending, and AI insights
+- **Export Capabilities** — JSON/CSV exports for further analysis
+
+---
+
+## 🚀 Quick Start
+
+**Requirements:** [Bun](https://bun.sh/), Python 3.11+
 
 ```bash
-# 1. Setup backend
+# 1. Clone the repository
+git clone https://github.com/nimbusNova/personal_finance.git
+cd personal_finance
+
+# 2. Setup backend
 cd api
 python3.11 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your KIMI_API_KEY
+# Edit .env with your KIMI_API_KEY from https://platform.moonshot.cn/
 python -c "from app.database import init_db; init_db()"
 cd ..
 
-# 2. Setup frontend
+# 3. Setup frontend
 cd web
 bun install
 cd ..
 
-# 3. Start
+# 4. Start the application
 ./start.sh
 # → Backend: http://localhost:8000
 # → Frontend: http://localhost:3000
 ```
 
-## Testing
+---
 
-```bash
-./test-quick.sh        # Unit tests
-./test-integration.sh  # Integration tests
-./test-e2e.sh          # End-to-end tests
-./test.sh              # All tests + coverage
+## 🏗️ Architecture
+
+```
+┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+│   Next.js 14    │──────▶    FastAPI      │──────▶     SQLite    │
+│   (Frontend)    │      │   (Backend)      │      │   (Database)    │
+└─────────────────┘      └──────────────────┘      └─────────────────┘
+                                │
+                                ▼
+                         ┌──────────────────┐
+                         │  Kimi AI (Moonshot)│
+                         │  PDF Extraction    │
+                         └──────────────────┘
 ```
 
-## Documentation
+### Tech Stack
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS, Bun
+- **Backend**: FastAPI, SQLAlchemy, Pydantic
+- **Database**: SQLite (local file-based)
+- **AI**: Kimi (Moonshot AI) for PDF extraction and suggestions
+- **Testing**: Pytest (backend), Jest (frontend)
 
-- [PRD — Phase I: Personal Usage](docs/PRDs/PRD-Personal-Finance-Portfolio-Intelligence-v1.md#part-i-phase-i--personal-usage)
-- [PRD — Phase II: Publishable Product](docs/PRDs/PRD-Personal-Finance-Portfolio-Intelligence-v1.md#part-ii-phase-ii--publishable-product--automated-import)
-- [PRD — Phase III: Advanced / Enterprise](docs/PRDs/PRD-Personal-Finance-Portfolio-Intelligence-v1.md#part-iii-phase-iii--advanced--enterprise)
-- [ERD](docs/ERD.md)
-- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
+### Data Flow
+1. Upload PDF statements (brokerage, bank, credit card)
+2. Kimi AI extracts structured data (holdings, transactions, balances)
+3. Data stored locally in SQLite
+4. AI generates personalized suggestions based on life-stage profile
+5. Interactive dashboard visualizes portfolio and spending
 
-## License
+---
 
-MIT
+## 🧪 Testing
+
+```bash
+# Quick unit tests
+./test-quick.sh
+
+# Integration tests (database + API)
+./test-integration.sh
+
+# End-to-end tests
+./test-e2e.sh
+
+# All tests with coverage
+./test.sh
+```
+
+**Current Test Status:**
+- Backend: 172 passing ✅
+- Frontend: 60 passing ✅
+
+---
+
+## 📚 Documentation
+
+- **[Product Requirements (PRD)](docs/PRDs/PRD-Personal-Finance-Portfolio-Intelligence-v1.md)** — Full product specification with phased roadmap
+  - Phase I: Personal Usage (current)
+  - Phase II: Publishable Product
+  - Phase III: Advanced / Enterprise
+- **[Entity Relationship Diagram](docs/ERD.md)** — Database schema and relationships
+- **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** — Technical implementation details
+
+---
+
+## 🛡️ Security & Privacy
+
+- **Local-First**: All data stored locally in SQLite; no cloud database required
+- **API Key Security**: Kimi API keys are stored in `.env` (never committed)
+- **No Telemetry**: No analytics, tracking, or data collection
+- **PDF Storage**: PDFs stored locally in `api/data/pdfs/` (gitignored)
+- **Authentication**: JWT-based auth with bcrypt password hashing
+
+**Before going to production:**
+1. Change `SECRET_KEY` in `.env`
+2. Use a production WSGI server (e.g., Gunicorn + Uvicorn workers)
+3. Enable HTTPS
+4. Consider migrating from SQLite to PostgreSQL for multi-user scenarios
+
+---
+
+## 🗺️ Roadmap
+
+### Current (Phase I) ✅
+- [x] PDF-based data ingestion
+- [x] Local SQLite storage
+- [x] AI-powered suggestions
+- [x] Monthly reports
+- [x] Portfolio tracking
+- [x] Spending analysis
+
+### Phase II (Planned)
+- [ ] Direct API connections (Plaid, Alpaca, etc.)
+- [ ] Automated data sync
+- [ ] Mobile app (React Native)
+- [ ] Multi-user support
+- [ ] PostgreSQL support
+
+### Phase III (Future)
+- [ ] Tax optimization suggestions
+- [ ] Monte Carlo retirement simulations
+- [ ] Rebalancing automation
+- [ ] Advanced portfolio optimization
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! This is a personal finance tool that can benefit from community input.
+
+### Development Setup
+
+```bash
+# Fork and clone
+git clone https://github.com/your-username/personal_finance.git
+
+# Setup pre-commit hooks (optional)
+cd api
+pip install pre-commit
+pre-commit install
+```
+
+### Pull Request Process
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`./test.sh`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### Areas for Contribution
+- **New Broker Support**: PDF parsers for additional brokerage statements
+- **AI Prompts**: Improved suggestion prompts and reasoning
+- **UI/UX**: Dashboard enhancements and visualizations
+- **Testing**: Additional test coverage
+- **Documentation**: Tutorials, guides, and examples
+
+---
+
+## 💬 Support
+
+- **Issues**: [GitHub Issues](https://github.com/nimbusNova/personal_finance/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/nimbusNova/personal_finance/discussions)
+
+---
+
+## 🙏 Acknowledgments
+
+- **[Kimi AI](https://www.moonshot.cn/)** by Moonshot — PDF extraction and AI suggestions
+- **[FastAPI](https://fastapi.tiangolo.com/)** — Backend framework
+- **[Next.js](https://nextjs.org/)** — Frontend framework
+- **[Bun](https://bun.sh/)** — JavaScript runtime and package manager
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for personal finance enthusiasts**
+
+[⬆ Back to Top](#personal-finance--portfolio-intelligence)
+
+</div>
