@@ -90,4 +90,4 @@ logs/
 
 .env
 # Next.js local data (SQLite, PDFs, logs, settings) — don't commit user data
-web/data/
+web/coverage/

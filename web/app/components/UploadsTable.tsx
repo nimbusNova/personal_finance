@@ -145,6 +145,8 @@ const STEP_MAP: Record<string, { label: string; pct: number }> = {
   reading_pdf: { label: 'Reading PDF…', pct: 15 },
   classifying: { label: 'Classifying document…', pct: 35 },
   extracting: { label: 'Extracting data with AI…', pct: 55 },
+  extracting_holdings: { label: 'Extracting holdings…', pct: 55 },
+  extracting_metadata: { label: 'Extracting account info…', pct: 65 },
   repairing_json: { label: 'Repairing JSON…', pct: 70 },
   validating: { label: 'Validating data…', pct: 80 },
   persisting: { label: 'Saving to database…', pct: 90 },

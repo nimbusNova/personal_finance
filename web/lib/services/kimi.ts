@@ -63,6 +63,26 @@ Return ONLY a valid JSON object with these exact fields:
 
 Return only the JSON object, no markdown, no explanation.`;
 
+const HOLDINGS_LIST_PROMPT = `Extract the holdings table from this brokerage statement.
+
+Return ONLY a valid JSON object with these exact fields:
+- holdings: array of objects with symbol, name, asset_class, sector, geography, quantity, price, market_value, cost_basis
+- extraction_confidence: number 0-1
+
+Be concise. Include every holding shown in the statement.
+Return only the JSON object, no markdown, no explanation.`;
+
+const ACCOUNT_METADATA_PROMPT = `Extract the account summary from this brokerage statement.
+
+Return ONLY a valid JSON object with these exact fields:
+- account_type: string
+- statement_date: YYYY-MM-DD
+- cash: object with settled_cash, unsettled_cash
+- total_value: number
+- extraction_confidence: number 0-1
+
+Return only the JSON object, no markdown, no explanation.`;
+
 const JSON_REPAIR_PROMPT = `The text below was supposed to be valid JSON but failed to parse.
 Fix any syntax errors, remove any non-JSON text, and return ONLY valid JSON.
 IMPORTANT: remove trailing commas (commas before closing } or ]). This is the most common error.
@@ -164,7 +184,8 @@ async function fetchWithRetry(
       }
     } catch (exc: any) {
       if (exc.name === 'AbortError') {
-        lastError = `Request timed out after ${timeoutMs}ms`;
+        const seconds = Math.round(timeoutMs / 1000);
+        lastError = `Kimi API timed out after ${seconds}s. The model may be overloaded or the statement is too large. Try again later, or retry with a smaller PDF.`;
         log.error(`Timeout for upload=${uploadId}: ${lastError}`);
       }
       // Network-level errors (fetch threw) — retry those too
@@ -196,7 +217,6 @@ class KimiService {
 
   async extractFromPdf(filePath: string, uploadId?: number, onProgress?: (step: string) => void): Promise<KimiResult> {
     onProgress?.('reading_pdf');
-    onProgress?.('reading_pdf');
     const { text: pdfText, source: textSource } = await this._getPdfText(filePath, uploadId);
     log.debug(`PDF text source=${textSource}, length=${pdfText?.length || 0}`, pdfText?.slice(0, 500));
     if (!pdfText) return { success: false, error: 'Could not extract text from PDF' };
@@ -213,8 +233,47 @@ class KimiService {
     const institution = classification.data?.institution || 'Unknown';
     const statementDate = classification.data?.statement_date;
 
-    onProgress?.('extracting');
-    const extraction = await this.extractStructuredData(pdfText, docType, uploadId);
+    let extraction: KimiResult;
+
+    if (docType === 'brokerage') {
+      // Two-pass extraction for large brokerage statements
+      onProgress?.('extracting_holdings');
+      const holdingsResult = await this.extractHoldingsList(pdfText, uploadId);
+      if (!holdingsResult.success) {
+        log.warn(`Holdings extraction failed for upload=${uploadId}: ${holdingsResult.error}`);
+        // Fall through to single-pass attempt as fallback
+        extraction = await this.extractStructuredData(pdfText, docType, uploadId);
+      } else {
+        onProgress?.('extracting_metadata');
+        const metaResult = await this.extractAccountMetadata(pdfText, uploadId);
+        if (!metaResult.success) {
+          log.warn(`Metadata extraction failed for upload=${uploadId}: ${metaResult.error}`);
+          extraction = { success: false, error: metaResult.error || 'Metadata extraction failed', raw_response: metaResult.raw_response };
+        } else {
+          const data: any = {
+            doc_type: 'brokerage',
+            institution: institution,
+            statement_date: statementDate,
+            account_type: metaResult.data?.account_type || '',
+            holdings: holdingsResult.data?.holdings || [],
+            cash: metaResult.data?.cash || { settled_cash: 0, unsettled_cash: 0 },
+            total_value: metaResult.data?.total_value || 0,
+            extraction_confidence: Math.min(
+              holdingsResult.data?.extraction_confidence || 0.5,
+              metaResult.data?.extraction_confidence || 0.5
+            ),
+            classification: classification.data,
+          };
+          log.info(`Two-pass extraction succeeded for upload=${uploadId}, holdings=${data.holdings.length}`);
+          return { success: true, data, raw_response: JSON.stringify(data) };
+        }
+      }
+    } else {
+      // Single-pass for bank / credit_card (smaller output)
+      onProgress?.('extracting');
+      extraction = await this.extractStructuredData(pdfText, docType, uploadId);
+    }
+
     if (extraction.success) {
       const data = extraction.data || {};
       data.doc_type = data.doc_type || docType;
@@ -290,9 +349,19 @@ class KimiService {
     };
   }
 
+  async extractHoldingsList(pdfText: string, uploadId?: number): Promise<KimiResult> {
+    return this._callChatCompletion(this._buildPayload(HOLDINGS_LIST_PROMPT, pdfText, 8000), uploadId, 120000);
+  }
+
+  async extractAccountMetadata(pdfText: string, uploadId?: number): Promise<KimiResult> {
+    return this._callChatCompletion(this._buildPayload(ACCOUNT_METADATA_PROMPT, pdfText, 4000), uploadId, 120000);
+  }
+
   async extractStructuredData(pdfText: string, docType: string, uploadId?: number): Promise<KimiResult> {
     const prompt = docType === 'brokerage' ? BROKERAGE_EXTRACTION_PROMPT : docType === 'credit_card' ? CREDIT_CARD_EXTRACTION_PROMPT : BANK_EXTRACTION_PROMPT;
-    return this._callChatCompletion(this._buildPayload(prompt, pdfText), uploadId);
+    // Fallback single-pass for non-brokerage or when two-pass fails.
+    // Large brokerage statements can output 10k+ tokens of JSON.
+    return this._callChatCompletion(this._buildPayload(prompt, pdfText, 16000), uploadId, 300000);
   }
 
   async repairJson(rawText: string, uploadId?: number): Promise<KimiResult> {
@@ -307,16 +376,17 @@ class KimiService {
     }, uploadId);
   }
 
-  private _buildPayload(systemPrompt: string, pdfText: string) {
-    const maxChars = 30000;
-    const truncated = pdfText.length > maxChars ? pdfText.slice(0, maxChars) + '\n...[truncated]' : pdfText;
+  private _buildPayload(systemPrompt: string, pdfText: string, maxTokens = 4000) {
+    // Safety cap: even the 128k model has limits. 80k chars ≈ 20k tokens input.
+    const MAX_CHARS = 80000;
+    const text = pdfText.length > MAX_CHARS ? pdfText.slice(0, MAX_CHARS) + '\n...[truncated]' : pdfText;
     return {
       model: this.model,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Below is the extracted text from a financial statement PDF.\n\n--- PDF TEXT START ---\n${truncated}\n--- PDF TEXT END ---` },
+        { role: 'user', content: `Below is the extracted text from a financial statement PDF.\n\n--- PDF TEXT START ---\n${text}\n--- PDF TEXT END ---` },
       ],
-      max_tokens: 4000,
+      max_tokens: maxTokens,
     };
   }
 
@@ -354,16 +424,16 @@ class KimiService {
     }
   }
 
-  private async _callChatCompletion(payload: any, uploadId?: number): Promise<KimiResult> {
+  private async _callChatCompletion(payload: any, uploadId?: number, timeoutMs = 120000): Promise<KimiResult> {
     try {
       const bodySize = JSON.stringify(payload).length;
-      log.info(`_callChatCompletion for upload=${uploadId}, bodySize=${bodySize} chars, model=${payload.model}`);
+      log.info(`_callChatCompletion for upload=${uploadId}, bodySize=${bodySize} chars, model=${payload.model}, timeout=${timeoutMs}ms`);
 
       const response = await fetchWithRetry(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      }, uploadId);
+      }, uploadId, 4, timeoutMs);
       if (!response.ok) {
         // This path is unlikely now since fetchWithRetry throws on non-ok after retries,
         // but keep it as a safety net.
@@ -404,8 +474,11 @@ class KimiService {
         return { success: false, error: `Failed to parse JSON: ${exc.message}`, raw_response: content };
       }
     } catch (exc: any) {
-      log.error(`_callChatCompletion failed for upload=${uploadId}: ${exc.message}`);
-      return { success: false, error: exc.message };
+      const msg = exc.message?.includes('timed out')
+        ? exc.message
+        : `Kimi API error: ${exc.message}`;
+      log.error(`_callChatCompletion failed for upload=${uploadId}: ${msg}`);
+      return { success: false, error: msg };
     }
   }
 }
