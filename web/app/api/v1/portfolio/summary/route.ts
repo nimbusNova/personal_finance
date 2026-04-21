@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import * as schema from '@/lib/db/schema';
 import { jsonResponse } from '@/lib/api-utils';
@@ -13,7 +13,7 @@ export async function GET() {
   }
   const allocation: Record<string, number> = {};
   if (snapshotIds.length) {
-    const holdings = db.select().from(schema.holdings).where(sql`${schema.holdings.snapshotId} IN (${sql.join(snapshotIds)})`).all();
+    const holdings = db.select().from(schema.holdings).where(inArray(schema.holdings.snapshotId, snapshotIds)).all();
     for (const h of holdings) { const ac = h.assetClass || 'unknown'; allocation[ac] = (allocation[ac] || 0) + (h.marketValue || 0); }
   }
   if (cashBalance > 0) allocation.cash = cashBalance;
