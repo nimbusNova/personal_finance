@@ -11,7 +11,6 @@ import { usePrivacy } from '@/app/context/PrivacyContext';
 import { formatCurrencyPrivate } from '@/lib/formatters';
 import {
   getPortfolioSummary,
-  getSuggestions,
   getUploads,
   getAccounts,
   getTransactions,
@@ -25,7 +24,6 @@ import {
   Banknote,
   CreditCard,
   FileText,
-  Lightbulb,
   AlertCircle,
   Loader2,
   RefreshCw,
@@ -93,7 +91,6 @@ interface SpendingItem {
 export default function DashboardPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [spending, setSpending] = useState<SpendingItem[]>([]);
@@ -118,14 +115,12 @@ export default function DashboardPage() {
       const [
         portfolioData,
         accountsData,
-        suggestionsData,
         uploadsData,
         txnsData,
         spendingData,
       ] = await Promise.all([
         getPortfolioSummary().catch(() => null),
         getAccounts().catch(() => ({ accounts: [] })),
-        getSuggestions(true).catch(() => ({ suggestions: [] })),
         getUploads().catch(() => ({ uploads: [] })),
         getTransactions().catch(() => ({ transactions: [] })),
         getTransactionSummary(year, month).catch(() => ({ summary: [] })),
@@ -133,7 +128,6 @@ export default function DashboardPage() {
 
       setSummary(portfolioData);
       setAccounts(accountsData.accounts || []);
-      setSuggestions(suggestionsData.suggestions || []);
       setUploads(uploadsData.uploads || []);
       setTransactions(txnsData.transactions?.slice(0, 10) || []);
       setSpending(spendingData.summary || []);
@@ -427,34 +421,6 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-
-              {/* Active Suggestions */}
-              {suggestions.length > 0 && (
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Lightbulb className="w-5 h-5 text-gray-400" />
-                    <h2 className="text-lg font-semibold text-white">Active Suggestions</h2>
-                  </div>
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                    {suggestions.slice(0, 5).map((s) => (
-                      <div
-                        key={s.id}
-                        className="p-3 bg-gray-700/50 rounded-lg border border-gray-600"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-white capitalize">
-                            {s.suggestion_type}
-                          </span>
-                          <span className="text-xs bg-primary-900/50 text-primary-300 px-2 py-0.5 rounded-full">
-                            {Math.round((s.confidence_score || 0) * 100)}% confidence
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400 line-clamp-2">{s.reasoning_text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Recent Uploads */}
               <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">

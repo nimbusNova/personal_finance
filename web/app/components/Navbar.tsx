@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { usePrivacy } from '@/app/context/PrivacyContext';
 import { getSettings } from '@/lib/api';
 import {
-  Menu, X, LayoutDashboard, Upload, PieChart, Receipt, Lightbulb,
+  Menu, X, LayoutDashboard, Upload, PieChart, Receipt,
   Eye, EyeOff, ChevronDown, Settings, User,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -18,7 +18,6 @@ function cn(...inputs: ClassValue[]) {
 
 const topNavItems = [
   { href: '/upload', label: 'Upload', icon: Upload },
-  { href: '/suggestions', label: 'Suggestions', icon: Lightbulb },
 ];
 
 const dashboardSubItems = [

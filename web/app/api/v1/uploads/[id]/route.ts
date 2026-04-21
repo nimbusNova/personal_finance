@@ -26,7 +26,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const pdf = db.select().from(schema.pdfs).where(eq(schema.pdfs.id, pdfId)).get();
   if (!pdf) return notFoundResponse('PDF not found');
   const snapshots = db.select().from(schema.portfolioSnapshots).where(eq(schema.portfolioSnapshots.pdfId, pdfId)).all();
-  for (const snap of snapshots) db.delete(schema.portfolioSnapshots).where(eq(schema.portfolioSnapshots.id, snap.id)).run();
+  for (const snap of snapshots) {
+    db.delete(schema.holdings).where(eq(schema.holdings.snapshotId, snap.id)).run();
+    db.delete(schema.portfolioSnapshots).where(eq(schema.portfolioSnapshots.id, snap.id)).run();
+  }
   db.delete(schema.transactions).where(eq(schema.transactions.pdfId, pdfId)).run();
   db.delete(schema.accountBalances).where(eq(schema.accountBalances.pdfId, pdfId)).run();
   db.delete(schema.extractionJobs).where(eq(schema.extractionJobs.pdfId, pdfId)).run();
