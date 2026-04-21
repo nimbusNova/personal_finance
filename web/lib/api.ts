@@ -136,7 +136,7 @@ export async function retryExtraction(pdfId: number) {
 }
 
 export async function updateExtractedData(pdfId: number, extractedData: any) {
-  return fetchApi(`/api/v1/uploads/${pdfId}/extracted-data`, {
+  return fetchApi(`/api/v1/uploads/${pdfId}`, {
     method: 'PATCH',
     body: JSON.stringify({ extracted_data: extractedData }),
   });
