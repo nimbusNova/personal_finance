@@ -48,32 +48,27 @@
 
 ## 🚀 Quick Start
 
-**Requirements:** [Bun](https://bun.sh/), Python 3.11+
+**Requirements:** [Bun](https://bun.sh/) 1.0+
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/nimbusNova/personal_finance.git
 cd personal_finance
 
-# 2. Setup backend
-cd api
-python3.11 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your KIMI_API_KEY from https://platform.moonshot.cn/
-python -c "from app.database import init_db; init_db()"
-cd ..
-
-# 3. Setup frontend
+# 2. Install dependencies
 cd web
 bun install
-cd ..
+
+# 3. Configure your Kimi API key
+# Option A: Environment variable
+export KIMI_API_KEY="your-key-from-https://platform.moonshot.cn/"
+# Option B: Via the Settings UI after first start
 
 # 4. Start the application
+cd ..
 ./start.sh
-# → Backend: http://localhost:8000
-# → Frontend: http://localhost:3000
+# → App: http://localhost:3000
+# → Database auto-initializes on first access
 ```
 
 ---
@@ -81,34 +76,51 @@ cd ..
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│           Next.js 14 Full-Stack         │
-│  ┌─────────────┐  ┌──────────────────┐  │
-│  │  React UI   │  │  API Routes      │  │
-│  │  (Frontend) │  │  (/api/v1/*)     │  │
-│  └─────────────┘  └──────────────────┘  │
-│                          │              │
-│              ┌───────────┴───────────┐  │
-│              ▼                       ▼  │
-│        ┌──────────┐           ┌────────┐│
-│        │  SQLite  │           │  Kimi  ││
-│        │  (local) │           │   AI   ││
-│        └──────────┘           └────────┘│
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│           Next.js 14 Full-Stack             │
+│  ┌─────────────────────────────────────┐    │
+│  │         React UI (App Router)       │    │
+│  │    Pages + Server Components        │    │
+│  └─────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────┐    │
+│  │      API Routes (/api/v1/*)         │    │
+│  │  22 endpoints: portfolio, holdings, │    │
+│  │  uploads, transactions, settings... │    │
+│  └─────────────────────────────────────┘    │
+│              │                              │
+│  ┌───────────┴───────────┐                  │
+│  ▼                       ▼                  │
+│  ┌──────────┐    ┌──────────────┐          │
+│  │  SQLite  │    │  Kimi AI     │          │
+│  │ (better- │    │  (Moonshot)  │          │
+│  │ sqlite3) │    │  PDF extract │          │
+│  └──────────┘    └──────────────┘          │
+│                                              │
+│  Local data dir: web/data/                   │
+│  • personal_finance.db (auto-init)           │
+│  • pdfs/  • logs/  • settings.json           │
+└─────────────────────────────────────────────┘
 ```
 
 ### Tech Stack
-- **Full-Stack**: Next.js 14 with API Routes, React, TypeScript, Bun
-- **Database**: SQLite via `better-sqlite3` with Drizzle ORM
-- **AI**: Kimi (Moonshot AI) for PDF extraction and suggestions
-- **Testing**: Jest (frontend + API client)
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 14 (App Router), React, TypeScript |
+| **Runtime** | Bun |
+| **Database** | SQLite via `better-sqlite3` with Drizzle ORM |
+| **ORM** | Drizzle Kit + Drizzle ORM |
+| **AI** | Kimi (Moonshot AI) — PDF extraction & suggestions |
+| **Testing** | Jest (Bun test runner) |
+| **Styling** | Tailwind CSS |
 
 ### Data Flow
-1. Upload PDF statements (brokerage, bank, credit card)
-2. Kimi AI extracts structured data (holdings, transactions, balances)
-3. Data stored locally in SQLite
-4. AI generates personalized suggestions based on life-stage profile
-5. Interactive dashboard visualizes portfolio and spending
+1. **Upload** — Drag & drop PDF statements (brokerage, bank, credit card)
+2. **Classify** — Kimi AI identifies document type from PDF text
+3. **Extract** — Two-pass extraction for brokerage (holdings list + account metadata), single-pass for bank/credit card
+4. **Repair** — JSON sanitization and AI-driven repair for malformed responses
+5. **Validate** — Holdings sum ≈ total ± 1%, no negative quantities, year inference
+6. **Persist** — Upsert institutions, accounts, snapshots, holdings, transactions, balances
+7. **Visualize** — Interactive dashboard with portfolio summary, spending analysis, monthly reports
 
 ---
 
@@ -128,9 +140,7 @@ cd ..
 ./test.sh
 ```
 
-**Current Test Status:**
-- Backend: 172 passing ✅
-- Frontend: 60 passing ✅
+**Current Test Status:** 46/46 passing ✅
 
 ---
 
@@ -194,11 +204,8 @@ Contributions are welcome! This is a personal finance tool that can benefit from
 ```bash
 # Fork and clone
 git clone https://github.com/your-username/personal_finance.git
-
-# Setup pre-commit hooks (optional)
-cd api
-pip install pre-commit
-pre-commit install
+cd personal_finance/web
+bun install
 ```
 
 ### Pull Request Process

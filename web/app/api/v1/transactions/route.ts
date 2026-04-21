@@ -25,12 +25,4 @@ export async function GET(request: Request) {
   return jsonResponse({ transactions: txs.map(t => ({ id: t.id, account_id: t.accountId, date: t.date, merchant: t.merchant, category: t.category, amount: t.amount, is_recurring: t.isRecurring, recurring_frequency: t.recurringFrequency })) });
 }
 
-export async function PATCH(request: Request) {
-  const url = new URL(request.url);
-  const transactionId = parseInt(url.pathname.split('/').pop()!);
-  const body = await request.json();
-  const transaction = db.select().from(schema.transactions).where(eq(schema.transactions.id, transactionId)).get();
-  if (!transaction) return notFoundResponse('Transaction not found');
-  db.update(schema.transactions).set({ category: body.category }).where(eq(schema.transactions.id, transactionId)).run();
-  return jsonResponse({ id: transactionId, category: body.category, message: 'Category updated' });
-}
+

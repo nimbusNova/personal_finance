@@ -29,7 +29,10 @@ Return ONLY a valid JSON object with these exact fields:
 - holdings: array of objects with symbol, name, asset_class, sector, geography, quantity, price, market_value, cost_basis
 - cash: object with settled_cash, unsettled_cash
 - total_value: number
+- other_assets: number (optional — any value not accounted for by holdings + cash, e.g. margin, pending dividends, accrued interest)
 - extraction_confidence: number 0-1
+
+IMPORTANT: Include EVERY position shown in the statement, including money market funds, cash sweep positions (e.g. SPAXX, FZFXX, SWVXX), and any listed securities. Do not skip cash-equivalent positions.
 
 Return only the JSON object, no markdown, no explanation.`;
 
@@ -77,7 +80,7 @@ Return ONLY a valid JSON object with these exact fields:
 - holdings: array of objects with symbol, name, asset_class, sector, geography, quantity, price, market_value, cost_basis
 - extraction_confidence: number 0-1
 
-Be concise. Include every holding shown in the statement.
+Be concise. Include EVERY position shown in the statement, including money market funds, cash sweep positions (e.g. SPAXX, FZFXX, SWVXX), and any listed securities. Do not skip cash-equivalent positions.
 Return only the JSON object, no markdown, no explanation.`;
 
 const ACCOUNT_METADATA_PROMPT = `Extract the account summary from this brokerage statement.

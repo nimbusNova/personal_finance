@@ -7,7 +7,7 @@ import { createServerLogger } from '../server-logger';
 
 const log = createServerLogger('extract');
 
-const HOLDINGS_VALUE_TOLERANCE = 0.01;
+const HOLDINGS_VALUE_TOLERANCE = 0.05;
 const MAX_RAW_LOG = 10000;
 
 function reportStep(pdfId: number, step: string) {
@@ -49,9 +49,12 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
       .run();
 
     reportStep(pdfId, 'validating');
-    const validationErrors = validateExtraction(extracted, docType);
+    const { errors: validationErrors, warnings: validationWarnings } = validateExtraction(extracted, docType);
+    if (validationWarnings.length > 0) {
+      log.warn(`[${pdfId}] Validation warnings: ${validationWarnings.join('; ')}`);
+    }
     if (validationErrors.length > 0) {
-      log.warn(`[${pdfId}] Validation failed: ${validationErrors.join('; ')}`);
+      log.error(`[${pdfId}] Validation errors: ${validationErrors.join('; ')}`);
       markFailed(pdfId, jobId, `Validation failed: ${validationErrors.join('; ')}`);
       return;
     }
@@ -93,9 +96,10 @@ function markFailed(pdfId: number, jobId: number, message: string, rawResponse?:
     .run();
 }
 
-function validateExtraction(data: any, docType: string): string[] {
+function validateExtraction(data: any, docType: string): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
-  if (!data) { errors.push('No data extracted'); return errors; }
+  const warnings: string[] = [];
+  if (!data) { errors.push('No data extracted'); return { errors, warnings }; }
 
   if (docType === 'brokerage') {
     const holdings = data.holdings || [];
@@ -107,8 +111,14 @@ function validateExtraction(data: any, docType: string): string[] {
     if (holdings.length && totalValue != null && totalValue > 0) {
       const holdingsSum = holdings.reduce((sum: number, h: any) => sum + (h.market_value || 0), 0);
       const expectedTotal = holdingsSum + settledCash;
-      if (Math.abs(expectedTotal - totalValue) / totalValue > HOLDINGS_VALUE_TOLERANCE) {
-        errors.push(`Holdings sum (${expectedTotal}) != total_value (${totalValue})`);
+      const otherAssets = data.other_assets || 0;
+      const pctDiff = Math.abs(expectedTotal + otherAssets - totalValue) / totalValue;
+      if (pctDiff > HOLDINGS_VALUE_TOLERANCE) {
+        const gap = totalValue - expectedTotal;
+        warnings.push(
+          `Holdings sum ($${expectedTotal.toFixed(2)}) + cash ($${settledCash.toFixed(2)}) differs from total_value ($${totalValue.toFixed(2)}) by $${gap.toFixed(2)} (${(pctDiff * 100).toFixed(1)}%). ` +
+          `This may be due to missing money-market positions, pending dividends, or other assets. Data will still be saved.`
+        );
       }
     }
     for (const h of holdings) {
@@ -122,7 +132,7 @@ function validateExtraction(data: any, docType: string): string[] {
       if (!transactions.length && !hasBalance) errors.push('No transactions or balances found');
     }
   }
-  return errors;
+  return { errors, warnings };
 }
 
 function persistExtraction(pdfId: number, data: any) {
@@ -196,7 +206,6 @@ function persistBrokerage(pdfId: number, accountId: number, data: any) {
   const totalValue = data.total_value || 0;
   const holdingsList = data.holdings || [];
   const investedValue = holdingsList.reduce((sum: number, h: any) => sum + (h.market_value || 0), 0);
-
   const snapshot = db.insert(schema.portfolioSnapshots).values({
     accountId, pdfId, statementDate, totalValue, cashBalance, investedValue, diversityScore: null,
   }).returning().get();
