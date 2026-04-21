@@ -47,6 +47,10 @@ Return ONLY a valid JSON object with these exact fields:
 - transactions: array of objects with date, description, amount, category, is_recurring
 - extraction_confidence: number 0-1
 
+For category, choose from: Food & Dining, Groceries, Shopping, Entertainment, Transportation, Healthcare, Travel, Utilities, Subscriptions, Education, Fitness, Personal Care, Home Improvement, Fees & Charges, Income, Other.
+If the statement does not show a category, infer it from the merchant/description name. Never return null for category.
+Examples: Starbucks/restaurants → Food & Dining; Target/Walmart/grocery → Groceries; Amazon/Best Buy → Shopping; gas/Uber → Transportation; CVS/doctors → Healthcare; Netflix/Spotify → Subscriptions; gym → Fitness.
+
 If there are no transactions, return an empty array [].
 Return only the JSON object, no markdown, no explanation.`;
 
@@ -60,6 +64,10 @@ Return ONLY a valid JSON object with these exact fields:
 - statement_balance: number
 - transactions: array of objects with date, merchant, category, amount, is_recurring
 - extraction_confidence: number 0-1
+
+For category, choose from: Food & Dining, Groceries, Shopping, Entertainment, Transportation, Healthcare, Travel, Utilities, Subscriptions, Education, Fitness, Personal Care, Home Improvement, Fees & Charges, Income, Other.
+If the statement does not show a category, infer it from the merchant name. Never return null for category.
+Examples: Starbucks/restaurants → Food & Dining; Target/Walmart/grocery → Groceries; Amazon/Best Buy → Shopping; gas/Uber → Transportation; CVS/doctors → Healthcare; Netflix/Spotify → Subscriptions; gym → Fitness.
 
 Return only the JSON object, no markdown, no explanation.`;
 
@@ -238,14 +246,14 @@ class KimiService {
     if (docType === 'brokerage') {
       // Two-pass extraction for large brokerage statements
       onProgress?.('extracting_holdings');
-      const holdingsResult = await this.extractHoldingsList(pdfText, uploadId);
+      const holdingsResult = await this.extractHoldingsList(pdfText, uploadId, statementDate);
       if (!holdingsResult.success) {
         log.warn(`Holdings extraction failed for upload=${uploadId}: ${holdingsResult.error}`);
         // Fall through to single-pass attempt as fallback
-        extraction = await this.extractStructuredData(pdfText, docType, uploadId);
+        extraction = await this.extractStructuredData(pdfText, docType, uploadId, statementDate);
       } else {
         onProgress?.('extracting_metadata');
-        const metaResult = await this.extractAccountMetadata(pdfText, uploadId);
+        const metaResult = await this.extractAccountMetadata(pdfText, uploadId, statementDate);
         if (!metaResult.success) {
           log.warn(`Metadata extraction failed for upload=${uploadId}: ${metaResult.error}`);
           extraction = { success: false, error: metaResult.error || 'Metadata extraction failed', raw_response: metaResult.raw_response };
@@ -271,7 +279,7 @@ class KimiService {
     } else {
       // Single-pass for bank / credit_card (smaller output)
       onProgress?.('extracting');
-      extraction = await this.extractStructuredData(pdfText, docType, uploadId);
+      extraction = await this.extractStructuredData(pdfText, docType, uploadId, statementDate);
     }
 
     if (extraction.success) {
@@ -349,19 +357,19 @@ class KimiService {
     };
   }
 
-  async extractHoldingsList(pdfText: string, uploadId?: number): Promise<KimiResult> {
-    return this._callChatCompletion(this._buildPayload(HOLDINGS_LIST_PROMPT, pdfText, 8000), uploadId, 120000);
+  async extractHoldingsList(pdfText: string, uploadId?: number, statementDate?: string): Promise<KimiResult> {
+    return this._callChatCompletion(this._buildPayload(HOLDINGS_LIST_PROMPT, pdfText, 8000, statementDate), uploadId, 120000);
   }
 
-  async extractAccountMetadata(pdfText: string, uploadId?: number): Promise<KimiResult> {
-    return this._callChatCompletion(this._buildPayload(ACCOUNT_METADATA_PROMPT, pdfText, 4000), uploadId, 120000);
+  async extractAccountMetadata(pdfText: string, uploadId?: number, statementDate?: string): Promise<KimiResult> {
+    return this._callChatCompletion(this._buildPayload(ACCOUNT_METADATA_PROMPT, pdfText, 4000, statementDate), uploadId, 120000);
   }
 
-  async extractStructuredData(pdfText: string, docType: string, uploadId?: number): Promise<KimiResult> {
+  async extractStructuredData(pdfText: string, docType: string, uploadId?: number, statementDate?: string): Promise<KimiResult> {
     const prompt = docType === 'brokerage' ? BROKERAGE_EXTRACTION_PROMPT : docType === 'credit_card' ? CREDIT_CARD_EXTRACTION_PROMPT : BANK_EXTRACTION_PROMPT;
     // Fallback single-pass for non-brokerage or when two-pass fails.
     // Large brokerage statements can output 10k+ tokens of JSON.
-    return this._callChatCompletion(this._buildPayload(prompt, pdfText, 16000), uploadId, 300000);
+    return this._callChatCompletion(this._buildPayload(prompt, pdfText, 16000, statementDate), uploadId, 300000);
   }
 
   async repairJson(rawText: string, uploadId?: number): Promise<KimiResult> {
@@ -376,14 +384,17 @@ class KimiService {
     }, uploadId);
   }
 
-  private _buildPayload(systemPrompt: string, pdfText: string, maxTokens = 4000) {
+  private _buildPayload(systemPrompt: string, pdfText: string, maxTokens = 4000, statementDate?: string) {
     // Safety cap: even the 128k model has limits. 80k chars ≈ 20k tokens input.
     const MAX_CHARS = 80000;
     const text = pdfText.length > MAX_CHARS ? pdfText.slice(0, MAX_CHARS) + '\n...[truncated]' : pdfText;
+    const yearHint = statementDate
+      ? `\n\nIMPORTANT: Transaction dates in this statement may only show month and day (e.g. "03/28" or "Apr 5"). Look at the entire PDF for year clues — statement date, billing cycle, year-to-date summaries, or headers — and use the correct year for ALL dates. This statement is dated ${statementDate}.`
+      : '';
     return {
       model: this.model,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: systemPrompt + yearHint },
         { role: 'user', content: `Below is the extracted text from a financial statement PDF.\n\n--- PDF TEXT START ---\n${text}\n--- PDF TEXT END ---` },
       ],
       max_tokens: maxTokens,
