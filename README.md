@@ -3,7 +3,6 @@
 <div align="center">
 
 [![CI/CD](https://github.com/nimbusNova/personal_finance/actions/workflows/ci.yml/badge.svg)](https://github.com/nimbusNova/personal_finance/actions/workflows/ci.yml)
-[![Tests](https://github.com/nimbusNova/personal_finance/actions/workflows/test.yml/badge.svg)](https://github.com/nimbusNova/personal_finance/actions/workflows/test.yml)
 [![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
