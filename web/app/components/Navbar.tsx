@@ -7,7 +7,7 @@ import { usePrivacy } from '@/app/context/PrivacyContext';
 import { getSettings } from '@/lib/api';
 import {
   Menu, X, LayoutDashboard, Upload, PieChart, Receipt,
-  Eye, EyeOff, ChevronDown, Settings, User,
+  Eye, EyeOff, ChevronDown, Settings, User, Zap,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -30,6 +30,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashOpen, setDashOpen] = useState(false);
   const [userName, setUserName] = useState('');
+  const [usageCost, setUsageCost] = useState<number | null>(null);
   const dashRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { showAmounts, togglePrivacy } = usePrivacy();
@@ -38,6 +39,14 @@ export default function Navbar() {
     getSettings()
       .then((data) => setUserName(data.user_name || ''))
       .catch(() => setUserName(''));
+    fetch('/api/ai/usage/summary')
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.monthToDateCost === 'number') {
+          setUsageCost(data.monthToDateCost);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Close dropdown on outside click
@@ -132,6 +141,14 @@ export default function Navbar() {
                 Welcome, {userName}
               </span>
             )}
+            <Link
+              href="/usage"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
+              title="AI Usage"
+            >
+              <Zap className="w-4 h-4 text-yellow-400" />
+              {usageCost !== null && usageCost > 0 ? `$${usageCost.toFixed(2)}` : '—'}
+            </Link>
             <Link
               href="/settings"
               className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition"
