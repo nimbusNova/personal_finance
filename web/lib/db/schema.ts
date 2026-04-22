@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real, unique } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, unique, index } from 'drizzle-orm/sqlite-core';
 
 export const institutions = sqliteTable('institutions', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
@@ -48,6 +48,9 @@ export const pdfs = sqliteTable('pdfs', {
   extractedData: text('extracted_data', { mode: 'json' }),
   errorMessage: text('error_message'),
   processedAt: integer('processed_at', { mode: 'timestamp' }),
+  provider: text('provider'),
+  model: text('model'),
+  tokenUsageJson: text('token_usage_json', { mode: 'json' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
@@ -60,6 +63,9 @@ export const extractionJobs = sqliteTable('extraction_jobs', {
   errorDetails: text('error_details', { mode: 'json' }),
   startedAt: integer('started_at', { mode: 'timestamp' }),
   completedAt: integer('completed_at', { mode: 'timestamp' }),
+  provider: text('provider'),
+  model: text('model'),
+  latencyMs: integer('latency_ms', { mode: 'number' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
@@ -163,3 +169,25 @@ export const monthlyReports = sqliteTable('monthly_reports', {
   errorMessage: text('error_message'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
+
+export const aiUsageLogs = sqliteTable('ai_usage_logs', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  taskType: text('task_type', {
+    enum: ['classification', 'extraction', 'repair', 'suggestion', 'report', 'chat'],
+  }).notNull(),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  promptTokens: integer('prompt_tokens', { mode: 'number' }),
+  completionTokens: integer('completion_tokens', { mode: 'number' }),
+  totalTokens: integer('total_tokens', { mode: 'number' }),
+  costEstimate: real('cost_estimate'),
+  latencyMs: integer('latency_ms', { mode: 'number' }),
+  success: integer('success', { mode: 'boolean' }).default(true),
+  errorMessage: text('error_message'),
+  pdfId: integer('pdf_id').references(() => pdfs.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+}, (t) => ({
+  pdfIdx: index('idx_usage_pdf').on(t.pdfId),
+  taskIdx: index('idx_usage_task').on(t.taskType, t.createdAt),
+  providerIdx: index('idx_usage_provider').on(t.provider, t.createdAt),
+}));
