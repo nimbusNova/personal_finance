@@ -1,8 +1,7 @@
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import { db } from '../db/client';
 import * as schema from '../db/schema';
-import { getKimiService } from './kimi';
-import type { KimiResult } from './kimi';
+import { extractFromPDF, type ExtractionResult } from '../ai/extraction';
 import { createServerLogger } from '../server-logger';
 
 const log = createServerLogger('extract');
@@ -31,8 +30,7 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
   const jobId = jobResult.id;
 
   try {
-    const service = getKimiService();
-    const result: KimiResult = await service.extractFromPdf(filePath, pdfId, (step) => reportStep(pdfId, step));
+    const result: ExtractionResult = await extractFromPDF(filePath, pdfId, (step) => reportStep(pdfId, step));
 
     if (!result.success) {
       markFailed(pdfId, jobId, result.error || 'Unknown extraction error', result.raw_response);
@@ -44,7 +42,13 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
     const docType = extracted.doc_type || 'unknown';
 
     db.update(schema.pdfs)
-      .set({ extractedData: extracted, extractionConfidence: confidence, docType })
+      .set({
+        extractedData: extracted,
+        extractionConfidence: confidence,
+        docType,
+        provider: result.provider,
+        model: result.model,
+      })
       .where(eq(schema.pdfs.id, pdfId))
       .run();
 
@@ -68,7 +72,7 @@ export async function processPdfExtraction(pdfId: number, filePath: string): Pro
       .run();
 
     db.update(schema.extractionJobs)
-      .set({ status: 'completed', completedAt: new Date() })
+      .set({ status: 'completed', completedAt: new Date(), provider: result.provider, model: result.model })
       .where(eq(schema.extractionJobs.id, jobId))
       .run();
 

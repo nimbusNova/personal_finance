@@ -148,16 +148,6 @@ export async function deleteUpload(pdfId: number) {
   });
 }
 
-export async function listKimiFiles() {
-  return fetchApi('/api/v1/kimi-files');
-}
-
-export async function deleteKimiFile(fileId: string) {
-  return fetchApi(`/api/v1/kimi-files/${fileId}`, {
-    method: 'DELETE',
-  });
-}
-
 export async function updateTransactionCategory(transactionId: number, category: string) {
   return fetchApi(`/api/v1/transactions/${transactionId}`, {
     method: 'PATCH',

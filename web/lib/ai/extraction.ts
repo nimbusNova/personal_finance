@@ -145,10 +145,16 @@ export async function extractFromPDF(
   }
 
   const llm = await createLLMService();
+  let lastProvider: string | undefined;
+  let lastModel: string | undefined;
 
   // ── Stage 1: Classification ──
   onProgress?.('classifying');
   const classification = await classifyDocument(llm, pdfText, pdfId);
+  if (classification.success) {
+    lastProvider = classification.provider;
+    lastModel = classification.model;
+  }
   if (!classification.success) {
     return { success: false, error: `Classification failed: ${classification.error}` };
   }
@@ -176,6 +182,8 @@ export async function extractFromPDF(
   }
 
   if (extraction.success) {
+    lastProvider = extraction.provider || lastProvider;
+    lastModel = extraction.model || lastModel;
     const data = extraction.data || {};
     data.doc_type = docType;
     data.institution = institution;
@@ -186,10 +194,12 @@ export async function extractFromPDF(
       data,
       raw_response: extraction.raw_response,
       confidence: extraction.confidence,
+      provider: lastProvider,
+      model: lastModel,
     };
   }
 
-  return { success: false, error: extraction.error };
+  return { success: false, error: extraction.error, provider: lastProvider, model: lastModel };
 }
 
 // ── Stage Implementations ──
@@ -205,7 +215,7 @@ async function classifyDocument(
       { system, prompt, schema: ClassificationSchema, temperature: 0 },
       { taskType: 'classification', pdfId }
     );
-    return { success: true, data: result.content, confidence: result.content.confidence };
+    return { success: true, data: result.content, confidence: result.content.confidence, provider: result.provider, model: result.model };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -256,6 +266,8 @@ async function extractBrokerage(
     data,
     confidence: data.extraction_confidence,
     raw_response: JSON.stringify(data),
+    provider: metaResult.provider,
+    model: metaResult.model,
   };
 }
 
@@ -284,6 +296,8 @@ async function extractBank(
     data,
     confidence: (result.content as any).extraction_confidence || 0.5,
     raw_response: JSON.stringify(data),
+    provider: result.provider,
+    model: result.model,
   };
 }
 
@@ -312,5 +326,7 @@ async function extractCreditCard(
     data,
     confidence: (result.content as any).extraction_confidence || 0.5,
     raw_response: JSON.stringify(data),
+    provider: result.provider,
+    model: result.model,
   };
 }
