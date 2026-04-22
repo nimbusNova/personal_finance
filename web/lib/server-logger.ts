@@ -31,6 +31,9 @@ function formatLine(level: string, namespace: string, message: string): string {
 }
 
 export function serverLog(level: 'debug' | 'info' | 'warn' | 'error', namespace: string, message: string, extra?: string) {
+  // Skip logging during tests to keep output clean
+  if (process.env.NODE_ENV === 'test') return;
+
   ensureLogDir();
   const line = formatLine(level, namespace, message);
   const full = extra ? `${line}\n${extra}\n` : `${line}\n`;
