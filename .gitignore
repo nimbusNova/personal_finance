@@ -92,3 +92,4 @@ logs/
 # Next.js local data (SQLite, PDFs, logs, settings) — don't commit user data
 web/coverage/
 web/data
+data/*

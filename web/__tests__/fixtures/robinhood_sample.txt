@@ -1,0 +1,604 @@
+Page of	1 22
+03/01/2026 to 03/31/2026
+Michael Wu
+Individual Account #:562113779
+174 Kayak Dr, San Jose, CA 95111
+500 Colonial Center Parkway, Suite 100, Lake Mary, FL 32746
+help@robinhood.com
+Account Summary Opening Balance Closing Balance
+Brokerage Cash Balance * $30,761.03 $9,230.69
+Deposit Sweep Balance $0.00 $0.00
+Total Securities ** $175,254.64 $193,962.57
+Portfolio Value $206,015.67 $203,193.26
+Portfolio Allocation
+Cash and Cash Equivalents
+4.45%
+Equities
+94.39%
+Options
+1.16%
+Income and Expense Summary This Period Year to Date
+Dividends $169.23 $272.73
+Capital Gains Distributions $0.00 $0.00
+Interest Earned*** $0.00 $0.00
+Stock Lending $0.02 $0.02
+
+-- 1 of 22 --
+
+* Brokerage Cash Balance includes your free credit balance, options cash collateral, and any other credit balances (where applicable). Information on the Brokerage-Held Cash Program, which pays interest on eligible free credit balances, is in the High Yield Cash Program
+Agreement, available at .	https://robinhood.com/us/en/about/legal/
+** "Total Securities" includes those securities held in your account as well as those on loan through Stock Lending (identified herein as "Loaned Securities" or "Loaned Stocks"). The provisions of the Securities Investor Protection Act of 1970 may not protect you with respect
+to Loaned Securities.
+*** If you receive an interest payment related to the Brokerage-Held Cash Program, the details will be provided in the Account Activity section. Any such payment will also be included in the item for that day's activity in the Brokerage-Held Cash section. If you receive an
+interest payment related to options cash collateral, the details will be provided in the Account Activity section. Any such payment will also be included in the item for that day's activity in the Brokerage-Held Cash section.
+Please note that when "Managed" is in the account title, it refers to accounts that are managed by Robinhood Asset Management, LLC ("RAM"), subject to the terms of the Robinhood Asset Management Advisory Agreement.
+As of the closing date of this statement, the annual percentage yield (APY) for customers enrolled in the High-Yield Cash Program, which includes the Cash Sweep Program, Brokerage-Held Cash Program, and interest earned on options collateral, or enrolled in a promotional
+boosted rate, ranges from 3.25% - 3.75%. For accounts managed by RAM, the APY is 3.25%. pay interest on your swept cash, minus any fees paid to Robinhood. RAM does not receive fees related to the cash sweep program. Uninvested cash swept to the	Program banks
+program banks is eligible for FDIC insurance up to applicable limits, subject to FDIC rules. Robinhood Financial LLC and its affiliates are not FDIC-insured banks. Deposit insurance covers the failure of an insured bank. Products other than the cash sweep program are not
+insured by the FDIC, are not deposits, and may lose value. Certain conditions must be satisfied for pass-through FDIC deposit insurance coverage to apply. The Securities Investor Protection Corporation has taken the position that uninvested cash swept to the program
+banks is not covered by the Securities Investor Protection Act.
+This statement shall be conclusive if not objected to in writing within ten days (except with respect to debit card transactions). Errors and omissions exempted. Please address all communications to the firm and not to the individuals. Address changes or other material
+changes in your account should be directed to the office servicing your account. Kindly mention your account number. This statement should be retained as it may be helpful in preparing your income tax returns. However, it is not a substitute for IRS Form 1099. Only
+information on Forms 1099 should be used for tax reporting.
+Robinhood Securities, LLC (“RHS”) carries your account as the clearing broker by arrangement with your introducing broker-dealer, Robinhood Financial LLC (“RHF”). If applicable, advisory services provided by RAM, an SEC-registered investment adviser.
+Robinhood Gold is a subscription-based membership program of premium services offered through Robinhood Gold, LLC.
+RHS is a Member of SIPC, which protects securities customers of its members up to $500,000 (including $250,000 for claims for cash). Explanatory brochure available upon request or at .	www.sipc.org 5320477
+
+-- 2 of 22 --
+
+Page of	3 22
+Portfolio Summary
+Securities Held in Account Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+Apple
+Estimated Yield: 0.42% AAPL Margin 33.069475 $253.79000 $8,392.70 $35.39 4.05%
+Astera Labs, Inc.
+Estimated Yield: 0.00% ALAB Margin 5.015041 $109.60000 $549.65 $0.00 0.27%
+AMD
+Estimated Yield: 0.00% AMD Margin 25 $203.43000 $5,085.75 $0.00 2.45%
+Amazon
+Estimated Yield: 0.00% AMZN Margin 10.288711 $208.27000 $2,142.83 $0.00 1.03%
+AppLovin
+Estimated Yield: 0.00% APP Margin 3 $398.00000 $1,194.00 $0.00 0.58%
+AtaiBeckley
+Estimated Yield: 0.00% ATAI Margin 100 $3.54000 $354.00 $0.00 0.17%
+Broadcom
+Estimated Yield: 0.82% AVGO Margin 25.494799 $309.51000 $7,890.90 $65.08 3.80%
+Caterpillar
+Estimated Yield: 0.89% CAT Margin 0.010619 $708.46000 $7.52 $0.07 0.00%
+CBL & Associates Properties
+Estimated Yield: 4.41% CBL Margin 41.720325 $38.43000 $1,603.31 $70.63 0.77%
+Coinbase
+Estimated Yield: 0.00% COIN Margin 6 $174.61000 $1,047.66 $0.00 0.51%
+Costco
+Estimated Yield: 0.52% COST Margin 6.539845 $996.43000 $6,516.50 $34.00 3.14%
+Credo Technology Group
+Estimated Yield: 0.00% CRDO Margin 111.01469 $93.87000 $10,420.95 $0.00 5.02%
+CrowdStrike Holdings
+Estimated Yield: 0.00% CRWD Margin 10.08381 $390.41000 $3,936.82 $0.00 1.90%
+
+-- 3 of 22 --
+
+Page of	4 22
+Portfolio Summary
+Securities Held in Account Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+CoreWeave
+Estimated Yield: 0.00% CRWV Margin 1 $77.47000 $77.47 $0.00 0.04%
+Entergy
+Estimated Yield: 2.23% ETR Margin 20.260005 $112.36000 $2,276.41 $50.83 1.10%
+Figma
+Estimated Yield: 0.00% FIG Margin 100 $21.14000 $2,114.00 $0.00 1.02%
+Alphabet Class A
+Estimated Yield: 0.30% GOOGL Margin 32.980905 $287.56000 $9,483.99 $28.78 4.57%
+Hims & Hers Health
+Estimated Yield: 0.00% HIMS Margin 120 $20.76000 $2,491.20 $0.00 1.20%
+IREN Limited
+Estimated Yield: 0.00% IREN Margin 128.243633 $34.28000 $4,396.19 $0.00 2.12%
+Eli Lilly
+Estimated Yield: 0.70% LLY Margin 4.055313 $919.77000 $3,729.96 $26.21 1.80%
+Lemonade
+Estimated Yield: 0.00% LMND Margin 100 $62.68000 $6,268.00 $0.00 3.02%
+Meta Platforms
+Estimated Yield: 0.39% META Margin 7.021519 $572.13000 $4,017.22 $15.73 1.94%
+MP Materials
+Estimated Yield: 0.00% MP Margin 113 $48.26000 $5,453.38 $0.00 2.63%
+Merck
+Estimated Yield: 2.78% MRK Margin 2.820344 $120.29000 $339.26 $9.42 0.16%
+Marvell Technology
+Estimated Yield: 0.27% MRVL Margin 11.03456 $99.05000 $1,092.97 $2.99 0.53%
+Microsoft
+Estimated Yield: 0.97% MSFT Margin 100.030055 $370.17000 $37,028.13 $358.98 17.85%
+
+-- 4 of 22 --
+
+Page of	5 22
+Portfolio Summary
+Securities Held in Account Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+Match
+Estimated Yield: 2.52% MTCH Margin 12.072168 $30.71000 $370.74 $9.35 0.18%
+NRG Energy
+Estimated Yield: 1.27% NRG Margin 15.115295 $146.14000 $2,208.95 $28.08 1.06%
+NVIDIA
+Estimated Yield: 0.02% NVDA Margin 106.500368 $174.40000 $18,573.66 $4.50 8.95%
+Novo Nordisk
+Estimated Yield: 3.49% NVO Margin 30 $36.75000 $1,102.50 $38.45 0.53%
+OppFi
+Estimated Yield: 0.00% OPFI Margin 20 $7.71000 $154.20 $0.00 0.07%
+Oracle
+Estimated Yield: 1.44% ORCL Margin 36.674906 $147.11000 $5,395.25 $77.74 2.60%
+Palantir Technologies
+Estimated Yield: 0.00% PLTR Margin 20 $146.28000 $2,925.60 $0.00 1.41%
+Qualcomm
+Estimated Yield: 2.77% QCOM Margin 20.464018 $128.78000 $2,635.36 $73.00 1.27%
+uniQure
+Estimated Yield: 0.00% QURE Margin 200 $16.35000 $3,270.00 $0.00 1.58%
+Rocket Lab Corporation
+Estimated Yield: 0.00% RKLB Margin 0.03449 $64.22000 $2.21 $0.00 0.00%
+Robinhood Ventures Fund I
+Estimated Yield: 0.00% RVI Margin 50 $26.54000 $1,327.00 $0.00 0.64%
+Synopsys
+Estimated Yield: 0.00% SNPS Margin 10 $396.48000 $3,964.80 $0.00 1.91%
+Symbotic
+Estimated Yield: 0.00% SYM Margin 20 $53.20000 $1,064.00 $0.00 0.51%
+
+-- 5 of 22 --
+
+Page of	6 22
+Portfolio Summary
+Securities Held in Account Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+Tempus AI
+Estimated Yield: 0.00% TEM Margin 20 $45.22000 $904.40 $0.00 0.44%
+Talen Energy
+Estimated Yield: 0.00% TLN Margin 6 $319.23000 $1,915.38 $0.00 0.92%
+Thermo Fisher Scientific
+Estimated Yield: 0.36% TMO Margin 5.017443 $491.53000 $2,466.22 $8.84 1.19%
+Tesla
+Estimated Yield: 0.00% TSLA Margin 22.829907 $371.75000 $8,487.02 $0.00 4.09%
+Taiwan Semiconductor Manufacturing
+Estimated Yield: 0.77% TSM Margin 4.877775 $337.95000 $1,648.44 $12.65 0.79%
+Uber
+Estimated Yield: 0.00% UBER Margin 1 $71.93000 $71.93 $0.00 0.03%
+Vanguard S&P 500 ETF
+Estimated Yield: 1.11% VOO Margin 7.758794 $597.55000 $4,636.27 $51.24 2.24%
+Vistra
+Estimated Yield: 0.61% VST Margin 31.742634 $150.33000 $4,771.87 $29.16 2.30%
+ATAI 08/21/2026 Call $5.00
+Estimated Yield: 0.00% ATAI Margin 1S $0.38000 ($38.00) $0.00 0.02%
+CRDO 04/17/2026 Call $110.00
+Estimated Yield: 0.00% CRDO Margin 1S $1.78000 ($178.00) $0.00 0.09%
+FIG 05/01/2026 Call $25.00
+Estimated Yield: 0.00% FIG Margin 1S $0.77000 ($77.00) $0.00 0.04%
+HIMS 04/24/2026 Call $23.00
+Estimated Yield: 0.00% HIMS Margin 1S $0.95000 ($95.00) $0.00 0.05%
+IREN 04/24/2026 Call $40.00
+Estimated Yield: 0.00% IREN Margin 1S $1.36000 ($136.00) $0.00 0.07%
+
+-- 6 of 22 --
+
+Page of	7 22
+Portfolio Summary
+Securities Held in Account Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+LMND 04/10/2026 Call $67.00
+Estimated Yield: 0.00% LMND Margin 1S $1.53000 ($153.00) $0.00 0.07%
+MP 04/24/2026 Call $65.00
+Estimated Yield: 0.00% MP Margin 1S $0.38000 ($38.00) $0.00 0.02%
+MSFT 05/01/2026 Call $400.00
+Estimated Yield: 0.00% MSFT Margin 1S $5.23000 ($523.00) $0.00 0.25%
+NVDA 04/24/2026 Call $190.00
+Estimated Yield: 0.00% NVDA Margin 1S $1.20000 ($120.00) $0.00 0.06%
+QCOM 01/15/2027 Call $190.00
+Estimated Yield: 0.00% QCOM Margin 1 $2.79000 $279.00 $0.00 0.13%
+QURE 04/17/2026 Call $22.00
+Estimated Yield: 0.00% QURE Margin 1S $0.35000 ($35.00) $0.00 0.02%
+QURE 05/15/2026 Call $20.00
+Estimated Yield: 0.00% QURE Margin 1S $2.15000 ($215.00) $0.00 0.10%
+RKLB 04/17/2026 Put $65.00
+Estimated Yield: 0.00% RKLB Margin 1S $5.15000 ($515.00) $0.00 0.25%
+
+-- 7 of 22 --
+
+Page of	8 22
+Portfolio Summary
+Loaned Securities Sym/Cusip Acct Type Qty Price Mkt Value Est. Dividend Yield % of Total Portfolio
+Total Securities * $193,962.57 $1,031.12 95.55%
+Brokerage Cash Balance $9,230.69 4.45%
+Deposit Sweep Balance $0.00 0.00%
+Total Priced Portfolio $203,193.26
+* “Total Securities” includes those securities held in your account as well as those on loan through Stock Lending (identified herein as “Loaned Securities” or “Loaned Stocks”). The provisions of the Securities Investor Protection Act of 1970 may not protect you with respect
+to Loaned Securities.
+
+-- 8 of 22 --
+
+Page of	9 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+Cash Div: R/D 2026-02-09 P/D 2026-03-02 - 20.135751 shares at 0.64 ETR Margin CDIV 03/02/2026 $12.89
+Gold Deposit Boost Payment Margin GDBP 03/02/2026 $8.50
+LMND 03/06/2026 Put $70.00 Margin OASGN 02/27/2026 1
+Lemonade
+CUSIP: 52567D107
+1 LMND Option Assigned
+LMND Margin Buy 02/27/2026 100 $70.00000 $7,000.00
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 02/27/2026 1 $395.00000 $395.00
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 02/27/2026 1 $394.00000 $394.00
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 02/27/2026 1 $391.00000 $391.00
+RKLB 02/27/2026 Put $73.00 RKLB Margin BTC 02/27/2026 1 $4.29000 $429.04
+RKLB 03/20/2026 Put $70.00 RKLB Margin STO 02/27/2026 1 $6.51000 $650.95
+CRWD 03/20/2026 Call $590.00 CRWD Margin STC 03/02/2026 1 $0.15000 $14.95
+LMND 04/10/2026 Call $67.00 LMND Margin STO 03/02/2026 1 $1.30000 $129.95
+NVDA 03/20/2026 Call $200.00 NVDA Margin BTC 03/02/2026 1 $1.74000 $174.04
+NVDA 04/02/2026 Call $200.00 NVDA Margin STO 03/02/2026 1 $3.02000 $301.95
+QURE 03/20/2026 Call $26.00 QURE Margin BTC 03/02/2026 1 $0.10000 $10.04
+QURE 03/20/2026 Call $30.00 QURE Margin BTC 03/02/2026 1 $0.05000 $5.04
+Entergy
+CUSIP: 29364G103
+
+-- 9 of 22 --
+
+Page of	10 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+Dividend Reinvestment ETR Margin Buy 03/03/2026 0.124254 $103.73890 $12.89
+HIMS 03/13/2026 Call $18.50 HIMS Margin STO 03/03/2026 1 $0.21000 $20.95
+HIMS 03/20/2026 Call $24.00 HIMS Margin BTC 03/03/2026 1 $0.08000 $8.04
+CRDO 03/06/2026 Put $110.00 CRDO Margin STO 03/05/2026 1 $1.60000 $159.95
+HOOD 03/20/2026 Put $75.00 HOOD Margin BTC 03/05/2026 1 $2.63000 $263.04
+Stock Lending
+February Payment
+Weighted Average Return Rate: 0.00%
+NVO Margin SLIP 03/06/2026 $0.01
+Stock Lending
+February Payment
+Weighted Average Return Rate: 0.00%
+OPFI Margin SLIP 03/06/2026 $0.01
+ACH Deposit Margin ACH 03/06/2026 $5,000.00
+CRDO 03/06/2026 Put $110.00 CRDO Margin BTC 03/06/2026 1 $0.08000 $8.04
+CRDO 03/27/2026 Put $94.00 CRDO Margin STO 03/06/2026 1 $3.08000 $307.95
+HIMS 03/13/2026 Call $18.50 HIMS Margin BTC 03/06/2026 1 $0.08000 $8.04
+HIMS 03/27/2026 Call $20.00 HIMS Margin STO 03/06/2026 1 $0.26000 $25.95
+Robinhood Ventures Fund I
+CUSIP: 770701100
+Primary Issue
+RVI Margin Buy 03/06/2026 50 $25.00000 $1,250.00
+Cash Div: R/D 2026-02-13 P/D 2026-03-10 - 4.04828 shares at 1.73 LLY Margin CDIV 03/10/2026 $7.00
+MP 03/20/2026 Call $70.00 MP Margin BTC 03/09/2026 1 $0.51000 $51.04
+MP 04/24/2026 Call $70.00 MP Margin STO 03/09/2026 1 $2.51000 $250.95
+
+-- 10 of 22 --
+
+Page of	11 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+United States Oil Fund
+CUSIP: 91232N207 USO Margin Buy 03/09/2026 20 $133.00000 $2,660.00
+United States Oil Fund
+CUSIP: 91232N207 USO Margin Sell 03/09/2026 20 $117.00000 $2,340.00
+VIX 03/18/2026 Put $16.00 VIX Margin STC 03/09/2026 1 $0.02000 $1.51
+VIXW 04/08/2026 Put $17.00 VIXW Margin BTO 03/09/2026 1 $0.15000 $15.64
+VIXW 04/08/2026 Put $17.00 VIXW Margin BTO 03/09/2026 9 $0.15000 $140.76
+Cash Div: R/D 2026-02-19 P/D 2026-03-12 - 70.742335 shares at 0.91 MSFT Margin CDIV 03/12/2026 $64.38
+Eli Lilly
+CUSIP: 532457108
+Dividend Reinvestment
+LLY Margin Buy 03/11/2026 0.007033 $995.17500 $7.00
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/11/2026 5 $402.00000 $2,010.00
+BABA 04/17/2026 Call $165.00 BABA Margin BTO 03/12/2026 1 $1.00000 $100.04
+Cash Div: R/D 2026-03-09 P/D 2026-03-16 - 28.961105 shares at 0.21 GOOGL Margin CDIV 03/16/2026 $6.08
+FIG 03/13/2026 Call $28.00 FIG Margin BTC 03/13/2026 1 $0.05000 $5.04
+FIG 04/10/2026 Call $30.00 FIG Margin STO 03/13/2026 1 $0.90000 $89.95
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/13/2026 5 $400.00000 $2,000.00
+Microsoft
+CUSIP: 594918104
+Dividend Reinvestment
+MSFT Margin Buy 03/13/2026 0.159601 $403.38000 $64.38
+Microsoft
+
+-- 11 of 22 --
+
+Page of	12 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+CUSIP: 594918104 MSFT Margin Buy 03/13/2026 1 $394.80000 $394.80
+CRDO 03/27/2026 Put $105.00 CRDO Margin STO 03/16/2026 1 $3.62000 $361.95
+CRDO 03/27/2026 Put $94.00 CRDO Margin BTC 03/16/2026 1 $1.32000 $132.04
+Gold Plan Credit Margin GMPC 03/17/2026 $16.30
+NVDA 04/02/2026 Call $200.00 NVDA Margin BTC 03/16/2026 1 $1.28000 $128.04
+RKLB 03/20/2026 Put $70.00 RKLB Margin BTC 03/16/2026 1 $2.60000 $260.04
+RKLB 04/17/2026 Put $65.00 RKLB Margin STO 03/16/2026 1 $4.50000 $449.95
+Alphabet Class A
+CUSIP: 02079K305
+Dividend Reinvestment
+GOOGL Margin Buy 03/17/2026 0.0198 $307.06000 $6.08
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/17/2026 1 $398.50000 $398.50
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/17/2026 1 $397.85000 $397.85
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/18/2026 1 $392.00000 $392.00
+MSFT 04/17/2026 Call $425.00 MSFT Margin STO 03/19/2026 1 $1.62000 $161.95
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/19/2026 0.128119 $390.26130 $50.00
+Microsoft
+CUSIP: 594918104 MSFT Margin Buy 03/19/2026 1 $390.00000 $390.00
+NVDA 04/17/2026 Call $200.00 NVDA Margin STO 03/19/2026 1 $0.90000 $89.95
+
+-- 12 of 22 --
+
+Page of	13 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+BABA 04/17/2026 Call $165.00 BABA Margin STC 03/20/2026 1 $0.17000 $16.95
+Dell
+CUSIP: 24703L202 DELL Margin Sell 03/20/2026 10 $160.00000 $1,600.00
+Option Expiration for ATAI 03/20/2026 Call $5.00 Margin OEXP 03/20/2026 1
+QURE 04/17/2026 Call $20.00 QURE Margin STO 03/20/2026 1 $1.10000 $109.95
+QURE 04/17/2026 Call $22.00 QURE Margin STO 03/20/2026 1 $0.80000 $79.95
+ATAI 08/21/2026 Call $5.00 ATAI Margin STO 03/23/2026 1 $0.40000 $39.95
+FIG 04/10/2026 Call $30.00 FIG Margin BTC 03/23/2026 1 $0.18000 $18.04
+MP 04/24/2026 Call $65.00 MP Margin STO 03/23/2026 1 $1.10000 $109.95
+MP 04/24/2026 Call $70.00 MP Margin BTC 03/23/2026 1 $0.50000 $50.04
+MSFT 04/10/2026 Call $405.00 MSFT Margin STO 03/23/2026 1 $2.16000 $215.95
+MSFT 04/17/2026 Call $425.00 MSFT Margin BTC 03/23/2026 1 $0.78000 $78.04
+NVDA 04/17/2026 Call $200.00 NVDA Margin BTC 03/23/2026 1 $0.50000 $50.04
+VIXW 04/08/2026 Put $17.00 VIXW Margin STC 03/24/2026 10 $0.05000 $45.10
+Cash Div: R/D 2026-03-05 P/D 2026-03-26 - 20.324687 shares at 0.89 QCOM Margin CDIV 03/26/2026 $18.09
+Cash Div: R/D 2026-03-16 P/D 2026-03-26 - 7.014626 shares at 0.525 META Margin CDIV 03/26/2026 $3.68
+IREN 03/27/2026 Put $38.00 IREN Margin STO 03/25/2026 1 $0.35000 $34.95
+NVDA 04/24/2026 Call $195.00 NVDA Margin STO 03/25/2026 1 $1.62000 $161.95
+
+-- 13 of 22 --
+
+Page of	14 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+VICI Properties
+CUSIP: 925652109 VICI Margin Sell 03/25/2026 0.016065 $27.12500 $0.44
+Alphabet Class A
+CUSIP: 02079K305 GOOGL Margin Buy 03/26/2026 2 $280.00000 $560.00
+Dell
+CUSIP: 24703L202 DELL Margin Sell 03/26/2026 0.233275 $176.85000 $41.25
+FIG 05/01/2026 Call $25.00 FIG Margin STO 03/26/2026 1 $1.15000 $114.95
+MSFT 04/10/2026 Call $397.50 MSFT Margin STO 03/26/2026 1 $1.04000 $103.95
+MSFT 04/10/2026 Call $405.00 MSFT Margin BTC 03/26/2026 1 $0.52000 $52.04
+NVDA 04/24/2026 Call $195.00 NVDA Margin BTC 03/26/2026 1 $0.75000 $75.04
+NVDA 04/24/2026 Call $200.00 NVDA Margin STO 03/26/2026 1 $0.44000 $43.95
+Alphabet Class A
+CUSIP: 02079K305 GOOGL Margin Buy 03/27/2026 2 $275.00000 $550.00
+CRDO 03/27/2026 Put $105.00 Margin OASGN 03/27/2026 1
+Credo Technology Group
+CUSIP: G25457105
+1 CRDO Option Assigned
+CRDO Margin Buy 03/27/2026 100 $105.00000 $10,500.00
+HIMS 03/27/2026 Call $20.00 HIMS Margin BTC 03/27/2026 1 $0.07000 $7.04
+HIMS 04/24/2026 Call $23.00 HIMS Margin STO 03/27/2026 1 $0.77000 $76.95
+IREN 03/27/2026 Put $38.00 Margin OASGN 03/27/2026 1
+IREN Limited
+CUSIP: Q4982L109
+1 IREN Option Assigned
+IREN Margin Buy 03/27/2026 100 $38.00000 $3,800.00
+
+-- 14 of 22 --
+
+Page of	15 22
+Account Activity
+Description Symbol Acct Type Transaction Date Qty Price Debit Credit
+Meta Platforms
+CUSIP: 30303M102
+Dividend Reinvestment
+META Margin Buy 03/27/2026 0.006893 $533.84000 $3.68
+NVDA 04/24/2026 Call $190.00 NVDA Margin STO 03/27/2026 1 $1.03000 $102.95
+NVDA 04/24/2026 Call $200.00 NVDA Margin BTC 03/27/2026 1 $0.35000 $35.04
+Qualcomm
+CUSIP: 747525103
+Dividend Reinvestment
+QCOM Margin Buy 03/27/2026 0.139331 $129.83410 $18.09
+CRDO 04/17/2026 Call $110.00 CRDO Margin STO 03/30/2026 1 $1.25000 $124.95
+Cash Div: R/D 2026-03-17 P/D 2026-03-31 - 41.720325 shares at 0.45 CBL Margin CDIV 03/31/2026 $18.77
+Cash Div: R/D 2026-03-20 P/D 2026-03-31 - 31.742634 shares at 0.228 VST Margin CDIV 03/31/2026 $7.24
+Cash Div: R/D 2026-03-23 P/D 2026-03-31 - 25.494799 shares at 0.65 AVGO Margin CDIV 03/31/2026 $16.57
+Cash Div: R/D 2026-03-27 P/D 2026-03-31 - 7.758794 shares at 1.8724 VOO Margin CDIV 03/31/2026 $14.53
+Gold Deposit Boost Payment Margin GDBP 03/31/2026 $8.49
+IREN 04/24/2026 Call $40.00 IREN Margin STO 03/30/2026 1 $1.30000 $129.95
+MSFT 04/10/2026 Call $397.50 MSFT Margin BTC 03/30/2026 1 $0.31000 $31.04
+MSFT 05/01/2026 Call $400.00 MSFT Margin STO 03/30/2026 1 $4.09000 $408.95
+QURE 04/17/2026 Call $20.00 QURE Margin BTC 03/30/2026 1 $0.37000 $37.04
+QURE 05/15/2026 Call $20.00 QURE Margin STO 03/30/2026 1 $1.62000 $161.95
+Total Funds Paid and Received $35,816.63 $14,286.29
+
+-- 15 of 22 --
+
+Page of	16 22
+Executed Trades Pending Settlement
+These transactions may not be reflected in the other summaries
+Description Acct Type Transaction Trade Date Settle Date Qty Price Debit Credit
+Total Executed Trades Pending Settlement $0.00 $0.00
+
+-- 16 of 22 --
+
+Page of	17 22
+Stock Lending - Loaned Securities
+These transactions are specific to Stock Lending and represent the securities on loan as of 03/31/2026
+Description Symbol Shares Lent Price MKT Value
+Total Market Value $0.00
+As a reminder, you can sell your shares as usual, even if they are on loan. The provisions of the Securities Investor Protection Act of 1970 may not protect you with respect to loaned securities.
+
+-- 17 of 22 --
+
+Page of	18 22
+Stock Lending - Loan Activity
+These transactions are specific to Stock Lending and represent all loan activity this month.
+Description Symbol Transaction Date Shares Lent From Account Shares Returned To Account
+
+-- 18 of 22 --
+
+Page of	19 22
+Stock Lending - Collateral Activity
+These transactions reflect daily movements of collateral to and from Stock Lending custodian banks.
+Description Date Debit Credit Balance
+Opening Collateral Balance 03/01/2026 $0.00
+Closing Collateral Balance 03/31/2026 $0.00
+Total Collateral Movements $0.00 $0.00
+Collateral held for securities loaned through Stock Lending is at least equal to the market value of such securities. The provisions of the Securities Investor Protection Act of 1970 may not protect you with respect to such loaned securities.
+
+-- 19 of 22 --
+
+Page of	20 22
+Deposit Sweep Program Banks
+These are the program banks where your uninvested cash is held as of 03/31/2026. Balances are insured by FDIC, not SIPC.
+Bank Balance
+As of the closing date of this statement, the annual percentage yield (APY) for customers enrolled in the High-Yield Cash Program, which includes the Cash Sweep Program, Brokerage-Held Cash Program, and interest earned on options collateral, or enrolled in a promotional
+boosted rate, ranges from 3.25% - 3.75%. For accounts managed by RAM, the APY is 3.25%. pay interest on your swept cash, minus any fees paid to Robinhood. RAM does not receive fees related to the cash sweep program. Uninvested cash swept to the	Program banks
+program banks is eligible for FDIC insurance up to applicable limits, subject to FDIC rules. Robinhood Financial LLC and its affiliates are not FDIC-insured banks. Deposit insurance covers the failure of an insured bank. Products other than the cash sweep program are not
+insured by the FDIC, are not deposits, and may lose value. Certain conditions must be satisfied for pass-through FDIC deposit insurance coverage to apply. The Securities Investor Protection Corporation has taken the position that uninvested cash swept to the program
+banks is not covered by the Securities Investor Protection Act.
+
+-- 20 of 22 --
+
+Page of	21 22
+Deposit Sweep Activity
+These transactions reflect movements of uninvested cash to and from program banks.
+Description Date Debit Credit Balance
+Opening Sweep Balance 03/01/2026 $0.00
+Closing Sweep Balance 03/31/2026 $0.00
+Total Swept Funds $0.00 $0.00
+
+-- 21 of 22 --
+
+Important Information
+If this is a margin account and we maintain a special miscellaneous account
+for you, this is a combined statement of your general account and special
+miscellaneous account maintained for you under Regulation T issued by the
+Board of Governors of the Federal Reserve System. The permanent record of
+the special miscellaneous account as required by Regulation T is available for
+your inspection at your request.
+The per annum rate of interest charged on debit balances in your account
+may change from time to time in accordance with fluctuations in interest
+rates. Interest is computed from the 1st day of the month to the last day of
+the month. The interest is based on the average daily balance in your account
+with us, and for the actual number of days based on an interest year of 360
+days.
+Short sales involve selling securities that you do not currently own, with the
+intention of repurchasing those securities at a later time. Short sale
+transactions may expose you to the risk of unlimited losses and must be
+executed through a margin account as they are subject to margin
+requirements. To maintain short positions, you may be asked to deposit funds
+and/or securities and your short positions may be subject to a “buy-in” at any
+time. Short sales may be subject to borrow fees, which vary based on market
+conditions and availability of the securities.
+This statement includes dividend and interest amounts credited to your
+account on securities held for you in our name. While this statement should
+be retained for income tax purposes, it is not a substitute for IRS Form 1099.
+Amounts reported on your 1099 may be different than what is reported here.
+Therefore, only information on Forms 1099 should be used for tax reporting.
+Information relative to regulatory trading/transaction fees and any other
+charges incurred in connection with equity or listed option transactions
+occurring during the month has previously been furnished to you in
+confirmation of such transactions. A summary of the information will be made
+available to you promptly upon request. Exercise assignment notices for
+option contracts are allocated among customer short positions pursuant to a
+manual procedure which randomly selects from amongst all customer short
+option positions including those contracts which are subject to exercise. All
+short American style option positions are liable for assignment at any time
+whereas European style options are assigned at expiration. A more detailed
+description of our random allocation procedure is available upon request.
+You are to promptly advise Robinhood of any material changes concerning
+your investment objectives or financial situation by updating your information
+using the Robinhood platform or by contacting help@robinhood.com. We will
+consider the information currently appearing on your investor profile as the
+most current, complete, and accurate information. If you are a RAM customer,
+you must promptly advise of material changes in your investment objectives,
+financial situation or if you wish to impose reasonable restrictions or modify
+the management of your account.
+Any free credit balances represent funds payable on demand of the customer.
+RHS acts as clearing agent for your trades. Your account, which was
+introduced to us by RHF, is established under your name on a “fully
+disclosed” basis at RHS. You remain a customer of RHF.
+1.
+2.
+3.
+Notice to Customers
+As required under SEC rules, both the RHF and the RHS Order Routing Reports
+(pursuant to SEC Rule 606) are publicly available, at https://robinhood.com
+. Information regarding specific order routing is available	/us/en/about/legal/
+free of charge upon request.
+As a clearing agent, RHS provides securities clearance and may provide order
+execution based on RHF instructions. RHS will not be involved with or have
+any responsibility for decisions regarding securities transactions in your
+account. RHF will be responsible for opening, approving and monitoring all
+activities in connection with your account. The entry of orders and any
+instructions regarding the deposit or withdrawal of securities or monies
+should be made through RHF.
+In addition to the above mentioned services, RHS will provide cashiering
+services, safeguard funds and securities while they are in its possession,
+monitor compliance with applicable credit, Regulation T and other RHS
+internal policies, and prepare and make accessible your account records
+(including transaction confirmations and periodic statements of your
+account).
+The dividend totals reflected in the Income and Expense Summary are
+inclusive of both taxable and non-taxable dividends.
+Interest charges to your account may be based on the size of your net debit
+balance during the interest period. These rates are subject to revision with
+appropriate notice. For more complete information regarding interest charges
+to customers, consult the RHF Fee Schedule, available at https://rbnhd.co
+.	/fees
+Robinhood Gold Card is offered by Robinhood Credit, Inc. ("RCT") and is
+issued by Coastal Community Bank, Member FDIC, pursuant to a license from
+Visa U.S.A. Inc. RCT is a financial technology company, not a bank.
+In case of errors or questions about your electronic transfers, including your
+debit card transactions, or if you think your statement or receipt is wrong or if
+you need more information about a transaction listed on the statement or
+receipt, email RHF or RHS at help@robinhood.com. RHF must hear from you
+no later than sixty (60) days after you were sent the FIRST statement on
+which the problem or error appeared.
+Tell RHF your name and account number.
+Describe the error or the transfer you are unsure about, and
+explain as clearly as you can why you believe it is an error or
+why you need more information.
+Tell RHF the dollar amount of the suspected error.
+RHF will investigate your complaint and will correct any error promptly. If we
+take more than ten (10) business days to do this, RHF will credit your account
+for the amount you think is in error, so that you will have the use of the money
+during the time it takes RHF to complete our investigation.
+Please see the Robinhood Securities, LLC & Robinhood Financial LLC IntraFi
+Network Deposit Sweep Program Agreement, available at https://robinhood.
+within the High-Yield Cash Program Agreement, for	com/us/en/about/legal/
+the terms and conditions of the cash sweep program, including disclosure
+information regarding FDIC insurance coverage.
+RHF and RHS are members of the Financial Industry Regulatory Authority, Inc.
+(“FINRA”), and we are required to inform you of the availability of the FINRA
+Investor Brochure, which contains information on FINRA BrokerCheck. You
+may contact FINRA at 800-289-9999 or via their website . RHS	www.finra.org
+carries your account and acts as your custodian for funds and securities
+deposited with us directly by you, through RHF as a result of transactions we
+process to your account. Any suspected inaccuracy or discrepancy in your
+account statement must be promptly reported to RHF. In order to protect your
+rights, please confirm any oral communications in writing and include your
+brokerage account number. General inquiries, concerns, or complaints
+regarding your account can be directed to either help@robinhood.com or by
+calling 650-761-7789. Written correspondence can be sent to 500 Colonial
+Center Parkway, Suite 100, Lake Mary, FL 32746.
+All trade confirmations are transmitted on or about the transaction date.
+Statement of Financial Condition
+Robinhood Securities, LLC. Audited Statement of Financial Condition as of
+December 31st, 2025 is available on the Company’s website at www.
+. A paper copy may be requested at no cost by calling 1-	robinhood.com/legal
+(800)-282-1327. On December 31st, 2025, Robinhood Securities, LLC. had a
+net capital of $3,531,443,399, which was $3,158,683,700 in excess of its
+required net capital of $372,759,699.
+Please retain this statement as it may be helpful in preparing your income tax
+returns and may be needed along with subsequent statements to verify
+interest charges in your account. However, it is not a substitute for IRS Form
+1099. Only information on Forms 1099 should be used for tax reporting.
+Please review the information contained in your account statement carefully.
+If details of any transactions or balances within your account are incorrect,
+you must notify us promptly at help@robinhood.com. This statement shall be
+deemed conclusive unless objected to in writing within ten (10) days.
+Page of	22 22
+5320477
+
+-- 22 of 22 --
+

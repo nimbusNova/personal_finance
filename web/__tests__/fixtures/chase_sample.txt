@@ -1,0 +1,146 @@
+000000106569236
+CUSTOMER SERVICE INFORMATION
+00690630101000000021
+Updates to our Deposit Account Agreement
+1 2	Page of
+AMOUNT
+DATE DESCRIPTION AMOUNT BALANCE
+00069063 DRE 703 219 00826 NNNNNNNNNNN 1 000000000 04 0000
+JPMorgan Chase Bank, N.A.
+P O Box 182051
+Columbus, OH 43218 - 2051
+December 05, 2025 through January 07, 2026
+Account Number:
+Chase.com
+1-800-935-9935
+chase.com/disclosures
+Beginning Balance $8,274.63
+Ending Balance $3,843.03
+Beginning Balance $8,274.63
+4,618.89
+893.00
+5,716.55
+191.41
+40.00
+12.00
+94.50
+3,309.19
+Web site:
+Service Center:
+Para Espanol: 1-877-312-4273
+International Calls: 1-713-262-1679
+We accept operator relay calls
+MICHAEL WU
+1702 WINDING WAY
+PASADENA CA 91107-1363
+In 2026, we anticipate updating our Deposit Account Agreement in March, June and November. These terms and conditions
+cover our Chase personal and business deposit accounts. These dates are subject to change. As a reminder, we will notify
+you in advance of any changes that may adversely affect you.
+You can always view the current Deposit Account Agreement online at or you can request a copy
+at a branch or by calling the number on this statement.
+Chase Total Checking
+Deposits and Additions 24,644.61
+Electronic Withdrawals -29,076.21
+12/05 Tiktok Inc Payroll PPD ID: 9111111101 12,893.52
+12/05 12/04 Payment To Chase Card Ending IN 9570 -1,944.76 10,948.76
+12/08 Robinhood Debits 562113779 Web ID: 5326394001 -5,000.00 5,948.76
+12/09 Zelle Payment From Jennifer Lew 0Jj0Ubo1Zzug 6,841.76
+12/09 Zelle Payment To Steven Wu Jpm99Bxqdxks -30.06 6,811.70
+12/09 Wf Credit Card Auto Pay PPD ID: 50260000 -136.08 6,675.62
+12/10 Pgande Web Online 54305651112025 Web ID: 5940742640 -244.65 6,430.97
+12/15 Uniswap Labs Payroll PPD ID: 9117571000 12,147.52
+12/15 Via Technologies Payroll PPD ID: 9111111101 12,338.93
+12/15 Zelle Payment From Nguyen Phan Wfct0Zll4T4P 12,378.93
+12/15 Zelle Payment From Qixuan Liu 26208033156 12,390.93
+12/15 Zelle Payment To Badminton Sy Jpm99By8C45F -20.00 12,370.93
+12/15 Zelle Payment To Arturo Jpm99Byfgmyd -65.00 12,305.93
+12/16 Wealthfront EDI Pymnts 4B5048Ff1C8946 Web ID: 4271967207 -5,000.00 7,305.93
+12/17 Remote Online Deposit 1 7,400.43
+12/19 Tiktok Inc Payroll PPD ID: 9111111101 10,709.62
+CHECKING SUMMARY
+TRANSACTION DETAIL
+*start*after address message area1
+*end*after address message area1
+*start*summary
+*end*summary
+*start*transaction detail
+*end*transaction detail
+
+-- 1 of 2 --
+
+000000106569236
+2 2	Page of
+DATE DESCRIPTION AMOUNT BALANCE
+SM
+IN CASE OF ERRORS OR QUESTIONS ABOUT YOUR ELECTRONIC FUNDS TRANSFERS:
+For personal accounts only:
+For business accounts,
+IN CASE OF ERRORS OR QUESTIONS ABOUT NON-ELECTRONIC FUNDS TRANSFERS
+JPMorgan Chase Bank, N.A. Member FDIC
+December 05, 2025 through January 07, 2026
+Account Number:
+Call us at 1-866-564-2262 or write us at the address on the front of this statement immediately if you think your statement or receipt is incorrect or if
+you need more information about a transfer listed on the statement or receipt.
+We must hear from you no later than 60 days after we sent you the FIRST statement on which the problem or error
+appeared. Be prepared to give us the following information:
+Your name and account number;
+A description of the error or the transaction you are unsure about, and why you think it is an error or want more information; and
+The amount of the suspected error.
+We will investigate your complaint and will correct any error promptly. If we take more than 10 business days (or 20 business days for new
+accounts) to do this, we will provide provisional credit to your account for the amount you think is in error so that you will have use of the money
+during the time it takes us to complete our investigation.
+our practice is to follow the procedures described above as detailed in your Deposit Account Agreement or other
+applicable agreements, but we are not legally required to do so. For example, we require you to notify us no later than 30 days after we sent you
+the first statement on which the error appeared. We may require you to provide us with a written statement that the disputed transaction was
+unauthorized. We are also not required to give provisional credit.
+: Contact us immediately if your statement is
+incorrect or if you need more information about any non-electronic funds transfers on this statement. For more details, see your Deposit Account
+Agreement or other applicable agreements that govern your account.
+640.00
+5,716.56
+469.46
+2,938.25
+4.80
+Ending Balance $3,843.03
+not
+Have electronic deposits made into this account totaling $500.00 or more, such as payments from payroll
+providers or government benefit providers, by using (i) the ACH network, (ii) the Real Time Payment or
+FedNow network, or (iii) third party services that facilitate payments to your debit card using the Visa or
+Mastercard network.
+OR, keep a balance at the beginning of each day of $1,500.00 or more in this account.
+OR, keep an average beginning day balance of $5,000.00 or more in qualifying linked deposits and
+investments.
+12/22 Zelle Payment From Jia Shu Bacprzazwxh0 11,349.62
+12/23 Zelle Payment To Jennifer Lew Jpm99Bzgw8As -1,000.00 10,349.62
+12/26 Robinhood Debits 562113779 Web ID: 5326394001 -2,700.00 7,649.62
+12/26 T-Mobile Pcs Svc 8999865 Web ID: 0000450304 -214.53 7,435.09
+12/29 Zelle Payment To Jennifer Lew Jpm99C007H02 -259.00 7,176.09
+12/31 Uniswap Labs Payroll PPD ID: 9117571000 12,892.65
+12/31 Via Technologies Payroll PPD ID: 9111111101 13,362.11
+01/02 Tiktok Inc Payroll PPD ID: 9111111101 16,300.36
+01/02 Zelle Payment From Xutong Sun Baciav9Cymip 16,305.16
+01/02 Zelle Payment To Steven Wu Jpm99C0Hgxpw -3,000.00 13,305.16
+01/05 01/02 Payment To Chase Card Ending IN 9570 -995.60 12,309.56
+01/05 01/02 Payment To Chase Card Ending IN 8739 -725.79 11,583.77
+01/05 Schwab Brokerage Moneylink 558622474068532 Web ID: 9005586224 -4,000.00 7,583.77
+01/05 Pnc Mortgage Pnc Pymt PPD ID: 31-0856949 -3,740.74 3,843.03
+A Monthly Service Fee was charged to your Chase Total Checking account. Here are the three ways you can avoid
+this fee during any statement period.
+(Your total electronic deposits this period were $22,960.31. Note: some deposits may be listed on your previous
+statement)
+TRANSACTION DETAIL (continued)
+•
+•
+•
+•
+•
+•
+*start*transaction detail
+*end*transaction detail
+	*start*post transaction detail message
+*end*post transaction detail message
+*start*dre portrait disclosure message area
+*end*dre portrait disclosure message area
+
+-- 2 of 2 --
+

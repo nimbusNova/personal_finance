@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { createServerLogger } from '../server-logger';
 import { createLLMService, type LLMService } from './service';
+import { findParser } from '../parsers/registry';
 import {
   CLASSIFICATION_SYSTEM_PROMPT,
   BROKERAGE_EXTRACTION_PROMPT,
@@ -142,6 +143,16 @@ export async function extractFromPDF(
   const pdfText = await extractPdfText(filePath);
   if (!pdfText) {
     return { success: false, error: 'Could not extract text from PDF' };
+  }
+
+  const parser = findParser(pdfText);
+  if (parser) {
+    onProgress?.('parsing');
+    const result = parser.parse(pdfText);
+    if (result.success && result.data) {
+      result.data.source = 'dedicated_parser';
+    }
+    return result as ExtractionResult;
   }
 
   const llm = await createLLMService();

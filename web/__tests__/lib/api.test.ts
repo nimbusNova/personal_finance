@@ -17,8 +17,6 @@ import {
   getUploadById,
   retryExtraction,
   deleteUpload,
-  listKimiFiles,
-  deleteKimiFile,
   updateTransactionCategory,
 } from '../../lib/api';
 
@@ -400,37 +398,4 @@ describe('API Client', () => {
     });
   });
 
-  describe('listKimiFiles', () => {
-    it('fetches Kimi files', async () => {
-      const mockData = { files: [{ id: 1, name: 'test.pdf' }] };
-      (global.fetch as jest.Mock).mockImplementation(() =>
-        Promise.resolve({
-          ok: true,
-          json: async () => mockData,
-        } as Response)
-      );
-
-      const result = await listKimiFiles();
-
-      expect(result).toEqual(mockData);
-    });
-  });
-
-  describe('deleteKimiFile', () => {
-    it('deletes Kimi file', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() =>
-        Promise.resolve({
-          ok: true,
-          json: async () => ({ success: true }),
-        } as Response)
-      );
-
-      await deleteKimiFile('1');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/kimi-files/1'),
-        expect.objectContaining({ method: 'DELETE' })
-      );
-    });
-  });
 });
