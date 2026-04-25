@@ -10,5 +10,5 @@ export async function GET(request: Request) {
   let uploads = db.select().from(schema.pdfs).orderBy(desc(schema.pdfs.createdAt)).all();
   if (accountId) uploads = uploads.filter(u => u.accountId === parseInt(accountId));
   if (status) uploads = uploads.filter(u => u.extractionStatus === status);
-  return jsonResponse({ uploads: uploads.map(u => ({ id: u.id, account_id: u.accountId, original_filename: u.originalFilename, file_path: u.filePath, file_size: u.fileSize, doc_type: u.docType, extraction_status: u.extractionStatus, processing_step: u.processingStep, extraction_confidence: u.extractionConfidence, error_message: u.errorMessage, created_at: u.createdAt })) });
+  return jsonResponse({ uploads: uploads.map(u => ({ id: u.id, account_id: u.accountId, original_filename: u.originalFilename, file_path: u.filePath, file_size: u.fileSize, doc_type: u.docType, extraction_status: u.extractionStatus, processing_step: u.processingStep, extraction_confidence: u.extractionConfidence, provider: u.provider, error_message: u.errorMessage, created_at: u.createdAt })) });
 }

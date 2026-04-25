@@ -4,6 +4,7 @@ import { parseDollar, parseDate, stripAnnotations, extractSection } from './util
 export class SchwabParser implements InstitutionParser {
   readonly institution = 'Charles Schwab';
   readonly docType = 'brokerage' as const;
+  readonly parserVersion = 'schwab-v1';
 
   detect(text: string): boolean {
     const head = text.slice(0, 1000).toLowerCase();
@@ -12,6 +13,15 @@ export class SchwabParser implements InstitutionParser {
       head.includes('schwab one') ||
       head.includes('schwab.com')
     );
+  }
+
+  validateLayout(text: string): void {
+    if (!/Statement\s+Period/i.test(text)) {
+      throw new Error('Missing "Statement Period" field');
+    }
+    if (!/Positions\s+-/i.test(text)) {
+      throw new Error('Missing "Positions -" section');
+    }
   }
 
   parse(text: string): ParseResult {
@@ -49,7 +59,6 @@ export class SchwabParser implements InstitutionParser {
       cash,
       total_value:           totalValue,
       ...summary,
-      transactions:          this._parseTransactions(text, period.end_date),
       extraction_confidence: 0.99,
     };
   }

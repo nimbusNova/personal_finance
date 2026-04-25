@@ -9,6 +9,7 @@ export interface UploadItem {
   file_size: number;
   extraction_status: string;
   processing_step?: string;
+  provider?: string;
   error_message?: string;
   created_at: string;
 }
@@ -92,6 +93,7 @@ export default function UploadsTable({
                   status={u.extraction_status}
                   step={u.processing_step}
                   error={u.error_message}
+                  provider={u.provider}
                 />
               </td>
               <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
@@ -143,6 +145,7 @@ export default function UploadsTable({
 const STEP_MAP: Record<string, { label: string; pct: number }> = {
   pending: { label: 'Waiting to start…', pct: 0 },
   reading_pdf: { label: 'Reading PDF…', pct: 15 },
+  parsing: { label: 'Parsing locally…', pct: 50 },
   classifying: { label: 'Classifying document…', pct: 35 },
   extracting: { label: 'Extracting data with AI…', pct: 55 },
   extracting_holdings: { label: 'Extracting holdings…', pct: 55 },
@@ -170,15 +173,18 @@ export function StepDisplay({
   status,
   step,
   error,
+  provider,
   showProgress = true,
 }: {
   status: string;
   step?: string;
   error?: string;
+  provider?: string;
   showProgress?: boolean;
 }) {
   const info = getStepInfo(step, status);
   const inProgress = isInProgress(status, step);
+  const parsedLocally = status === 'completed' && provider === 'dedicated_parser';
 
   const color =
     status === 'completed'
@@ -203,6 +209,14 @@ export function StepDisplay({
           <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
         )}
         <span className={`text-xs font-medium ${color}`}>{info.label}</span>
+        {parsedLocally && (
+          <span
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/40 whitespace-nowrap"
+            title="Parsed without AI — instant and free"
+          >
+            Parsed locally
+          </span>
+        )}
       </div>
       {showProgress && inProgress && info.pct > 0 && (
         <div className="w-full bg-gray-700 rounded-full h-1.5">

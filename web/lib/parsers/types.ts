@@ -3,7 +3,10 @@ export type DocType = 'brokerage' | 'bank' | 'credit_card';
 export interface InstitutionParser {
   readonly institution: string;
   readonly docType: DocType;
+  readonly parserVersion: string;
   detect(text: string): boolean;
+  /** Throws if expected structural markers are missing — signals a format version mismatch. */
+  validateLayout(text: string): void;
   parse(text: string): ParseResult;
 }
 

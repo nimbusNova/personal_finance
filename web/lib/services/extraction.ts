@@ -126,7 +126,7 @@ function validateExtraction(data: any, docType: string): { errors: string[]; war
       }
     }
     for (const h of holdings) {
-      if (h.quantity != null && h.quantity < 0) errors.push(`Negative quantity for ${h.symbol || '?'}`);
+      if (h.quantity != null && h.quantity < 0 && h.asset_class !== 'option') errors.push(`Negative quantity for ${h.symbol || '?'}`);
     }
   } else if (docType === 'credit_card' || docType === 'bank') {
     const transactions = data.transactions || [];

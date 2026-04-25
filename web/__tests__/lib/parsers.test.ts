@@ -89,28 +89,43 @@ describe('inferCategory', () => {
 // ── registry / findParser ─────────────────────────────────────────────────────
 
 describe('findParser registry', () => {
+  // findParser now calls detect() AND validateLayout() — texts must include layout markers.
+
   it('returns RobinhoodParser for Robinhood text', () => {
-    const p = findParser('robinhood\nsome other text\n500 colonial center parkway');
+    const p = findParser(
+      'robinhood\nPortfolio Summary\nSecurities Held in Account',
+    );
     expect(p).toBeInstanceOf(RobinhoodParser);
   });
 
   it('returns WealthfrontParser for Wealthfront text', () => {
-    const p = findParser('support@wealthfront.com\nsome text');
+    const p = findParser(
+      'wealthfront\nACCOUNT SUMMARY\nSTATEMENT PERIOD',
+    );
     expect(p).toBeInstanceOf(WealthfrontParser);
   });
 
   it('returns SchwabParser for Charles Schwab text', () => {
-    const p = findParser('charles schwab one brokerage');
+    const p = findParser(
+      'charles schwab\nStatement Period\nMarch 1-31, 2026\nPositions - Equities',
+    );
     expect(p).toBeInstanceOf(SchwabParser);
   });
 
   it('returns ChaseParser for JPMorgan Chase text', () => {
-    const p = findParser('jpmorgan chase bank');
+    const p = findParser(
+      'jpmorgan chase bank\nTRANSACTION DETAIL\nBeginning Balance $5,000.00',
+    );
     expect(p).toBeInstanceOf(ChaseParser);
   });
 
   it('returns null for unrecognised institution', () => {
     expect(findParser('some random financial document')).toBeNull();
+  });
+
+  it('returns null when institution detected but layout mismatches', () => {
+    // Robinhood detected but Portfolio Summary is missing — layout mismatch
+    expect(findParser('robinhood brokerage')).toBeNull();
   });
 });
 
@@ -280,6 +295,8 @@ describe('ChaseParser.parse', () => {
     'jpmorgan chase bank',
     '',
     'MICHAEL WU',
+    '1702 WINDING WAY',
+    'PASADENA CA 91107-1363',
     '',
     'Account Number:',
     '000000106569236',

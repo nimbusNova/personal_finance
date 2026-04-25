@@ -22,6 +22,7 @@ const TX_CODE_CATEGORY: Record<string, string> = {
 export class RobinhoodParser implements InstitutionParser {
   readonly institution = 'Robinhood';
   readonly docType = 'brokerage' as const;
+  readonly parserVersion = 'robinhood-v1';
 
   detect(text: string): boolean {
     const head = text.slice(0, 600).toLowerCase();
@@ -30,6 +31,15 @@ export class RobinhoodParser implements InstitutionParser {
       head.includes('500 colonial center parkway') ||
       head.includes('help@robinhood.com')
     );
+  }
+
+  validateLayout(text: string): void {
+    if (!/Portfolio\s+Summary/i.test(text)) {
+      throw new Error('Missing "Portfolio Summary" section');
+    }
+    if (!/Securities\s+Held\s+in\s+Account/i.test(text)) {
+      throw new Error('Missing "Securities Held in Account" column header');
+    }
   }
 
   parse(text: string): ParseResult {
@@ -58,7 +68,6 @@ export class RobinhoodParser implements InstitutionParser {
       cash:                  this._parseCash(text),
       total_value:           this._parseTotalValue(text),
       income_summary:        this._parseIncomeSummary(text),
-      transactions:          this._parseTransactions(text, period.end_date),
       extraction_confidence: 0.99,
     };
   }
@@ -168,14 +177,17 @@ export class RobinhoodParser implements InstitutionParser {
       const isOption = /\b(Call|Put)\b/.test(name) || /\b(Call|Put)\b/.test(symbol);
       const assetClass = isOption ? 'option' : 'equity';
 
+      // Options use a synthetic symbol to avoid unique-constraint collision with the underlying stock
+      const effectiveSymbol = isOption ? this._optionSymbol(name) : symbol;
+
       // % of total portfolio — last token ending in %
       const pctMatch = line.match(/([\d.]+)%\s*$/);
       const weightPct = pctMatch ? parseFloat(pctMatch[1]) / 100 : undefined;
 
       holdings.push({
-        symbol,
+        symbol:       effectiveSymbol,
         name,
-        asset_class: assetClass,
+        asset_class:  assetClass,
         quantity,
         price,
         market_value: mktVal,
@@ -184,6 +196,19 @@ export class RobinhoodParser implements InstitutionParser {
     }
 
     return holdings;
+  }
+
+  // ── Option symbol ────────────────────────────────────────────────────────
+
+  /** Builds a synthetic symbol for options to avoid DB unique-constraint collision.
+   *  "ATAI 08/21/2026 Call $5.00" → "ATAI_C_5.00_2026-08-21" */
+  private _optionSymbol(name: string): string {
+    const m = name.match(/^(\S+)\s+(\d{2}\/\d{2}\/\d{4})\s+(Call|Put)\s+\$([\d.]+)/i);
+    if (!m) return name.replace(/\s+/g, '_').slice(0, 30);
+    const expiry = parseDate(m[2]);
+    const type   = m[3][0].toUpperCase() === 'C' ? 'C' : 'P';
+    const strike = parseFloat(m[4]).toFixed(2);
+    return `${m[1]}_${type}_${strike}_${expiry}`;
   }
 
   // ── Transactions (Account Activity) ──────────────────────────────────────
