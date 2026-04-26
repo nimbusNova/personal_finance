@@ -1,0 +1,11 @@
+node_modules
+.next
+data
+.env
+.env.local
+*.log
+logs
+.git
+.gitignore
+__tests__
+docs

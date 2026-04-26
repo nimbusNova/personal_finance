@@ -1,0 +1,24 @@
+# For users who don't want to clone the repo — pulls the prebuilt image from Docker Hub.
+# Usage:
+#   1. Download this file
+#   2. Set your API key: export KIMI_API_KEY=your-key-here  (or paste it below)
+#   3. docker compose -f docker-compose.hub.yml up
+services:
+  app:
+    image: nimbusnova123/personal-finance:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - personal_finance_data:/app/data
+    environment:
+      - AI_PROVIDER=${AI_PROVIDER:-kimi}
+      - KIMI_API_KEY=${KIMI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  personal_finance_data:
+    driver: local

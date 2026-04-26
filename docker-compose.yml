@@ -1,0 +1,19 @@
+# For developers who cloned the repo — builds the image locally.
+# Usage: docker compose up --build
+services:
+  app:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - personal_finance_data:/app/data
+    env_file:
+      - path: ./web/.env
+        required: false
+    restart: unless-stopped
+
+volumes:
+  personal_finance_data:
+    driver: local
